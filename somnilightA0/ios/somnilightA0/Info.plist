@@ -51,5 +51,14 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>PingFangSC-Light.otf</string>
+		<string>PingFangSC-Medium.otf</string>
+		<string>PingFangSC-Regular.otf</string>
+		<string>PingFangSC-Semibold.otf</string>
+		<string>PingFangSC-Thin.otf</string>
+		<string>PingFangSC-Ultralight.otf</string>
+	</array>
 </dict>
 </plist>
