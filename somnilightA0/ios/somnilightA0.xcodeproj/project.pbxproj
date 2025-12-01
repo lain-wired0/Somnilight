@@ -7,19 +7,19 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		10D285C75B9F4D97B4EF634F /* PingFangSC-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = EA9C4B351FAA4FEEBC7DE518 /* PingFangSC-Light.otf */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		5FFD1B9017064A53B9EE695A /* PingFangSC-Ultralight.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8246998D799B401C90CB1F80 /* PingFangSC-Ultralight.otf */; };
+		7A1DE2ACE538451999EF62C5 /* PingFangSC-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 1CAE9FA6CB0F4E9D98271552 /* PingFangSC-Semibold.otf */; };
+		810F414274594873A5C52691 /* PingFangSC-Thin.otf in Resources */ = {isa = PBXBuildFile; fileRef = 248157F2784F4C16B6A5B7F6 /* PingFangSC-Thin.otf */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		C25663C220BB9E9A4CDC8065 /* libPods-somnilightA0.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5E00D21A801DE876D9FE52D0 /* libPods-somnilightA0.a */; };
+		CF66F40EDAC6464A80163BA0 /* PingFangSC-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = CE5B10FDF32A4A9CA1F405C4 /* PingFangSC-Medium.otf */; };
+		E841173535F04E13A9066F93 /* PingFangSC-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8D43C17D11304612BA46FAD9 /* PingFangSC-Regular.otf */; };
 		EFB257B5F663C0BEAC4D432D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8D81100A9D46C1904F8035C4 /* PrivacyInfo.xcprivacy */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
 		F5221914094F4B7488715090 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1077A33AD8C40ED7BF4509AF /* ExpoModulesProvider.swift */; };
-		10D285C75B9F4D97B4EF634F /* PingFangSC-Light.otf in Resources */ = {isa = PBXBuildFile; fileRef = EA9C4B351FAA4FEEBC7DE518 /* PingFangSC-Light.otf */; };
-		CF66F40EDAC6464A80163BA0 /* PingFangSC-Medium.otf in Resources */ = {isa = PBXBuildFile; fileRef = CE5B10FDF32A4A9CA1F405C4 /* PingFangSC-Medium.otf */; };
-		E841173535F04E13A9066F93 /* PingFangSC-Regular.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8D43C17D11304612BA46FAD9 /* PingFangSC-Regular.otf */; };
-		7A1DE2ACE538451999EF62C5 /* PingFangSC-Semibold.otf in Resources */ = {isa = PBXBuildFile; fileRef = 1CAE9FA6CB0F4E9D98271552 /* PingFangSC-Semibold.otf */; };
-		810F414274594873A5C52691 /* PingFangSC-Thin.otf in Resources */ = {isa = PBXBuildFile; fileRef = 248157F2784F4C16B6A5B7F6 /* PingFangSC-Thin.otf */; };
-		5FFD1B9017064A53B9EE695A /* PingFangSC-Ultralight.otf in Resources */ = {isa = PBXBuildFile; fileRef = 8246998D799B401C90CB1F80 /* PingFangSC-Ultralight.otf */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,21 +27,21 @@
 		13B07F961A680F5B00A75B9A /* somnilightA0.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = somnilightA0.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = somnilightA0/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = somnilightA0/Info.plist; sourceTree = "<group>"; };
+		1CAE9FA6CB0F4E9D98271552 /* PingFangSC-Semibold.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "PingFangSC-Semibold.otf"; path = "../assets/fonts/PingFangSC-Semibold.otf"; sourceTree = "<group>"; };
+		248157F2784F4C16B6A5B7F6 /* PingFangSC-Thin.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "PingFangSC-Thin.otf"; path = "../assets/fonts/PingFangSC-Thin.otf"; sourceTree = "<group>"; };
 		5E00D21A801DE876D9FE52D0 /* libPods-somnilightA0.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-somnilightA0.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		8246998D799B401C90CB1F80 /* PingFangSC-Ultralight.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "PingFangSC-Ultralight.otf"; path = "../assets/fonts/PingFangSC-Ultralight.otf"; sourceTree = "<group>"; };
+		8D43C17D11304612BA46FAD9 /* PingFangSC-Regular.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "PingFangSC-Regular.otf"; path = "../assets/fonts/PingFangSC-Regular.otf"; sourceTree = "<group>"; };
 		8D81100A9D46C1904F8035C4 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = somnilightA0/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A3D5020DDFADBE368FF42512 /* Pods-somnilightA0.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-somnilightA0.release.xcconfig"; path = "Target Support Files/Pods-somnilightA0/Pods-somnilightA0.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = somnilightA0/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		C577FF7A1B8B83B77EE6BD33 /* Pods-somnilightA0.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-somnilightA0.debug.xcconfig"; path = "Target Support Files/Pods-somnilightA0/Pods-somnilightA0.debug.xcconfig"; sourceTree = "<group>"; };
+		CE5B10FDF32A4A9CA1F405C4 /* PingFangSC-Medium.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "PingFangSC-Medium.otf"; path = "../assets/fonts/PingFangSC-Medium.otf"; sourceTree = "<group>"; };
+		EA9C4B351FAA4FEEBC7DE518 /* PingFangSC-Light.otf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = undefined; includeInIndex = 0; lastKnownFileType = unknown; name = "PingFangSC-Light.otf"; path = "../assets/fonts/PingFangSC-Light.otf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = somnilightA0/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* somnilightA0-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "somnilightA0-Bridging-Header.h"; path = "somnilightA0/somnilightA0-Bridging-Header.h"; sourceTree = "<group>"; };
-		EA9C4B351FAA4FEEBC7DE518 /* PingFangSC-Light.otf */ = {isa = PBXFileReference; name = "PingFangSC-Light.otf"; path = "../assets/fonts/PingFangSC-Light.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		CE5B10FDF32A4A9CA1F405C4 /* PingFangSC-Medium.otf */ = {isa = PBXFileReference; name = "PingFangSC-Medium.otf"; path = "../assets/fonts/PingFangSC-Medium.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		8D43C17D11304612BA46FAD9 /* PingFangSC-Regular.otf */ = {isa = PBXFileReference; name = "PingFangSC-Regular.otf"; path = "../assets/fonts/PingFangSC-Regular.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		1CAE9FA6CB0F4E9D98271552 /* PingFangSC-Semibold.otf */ = {isa = PBXFileReference; name = "PingFangSC-Semibold.otf"; path = "../assets/fonts/PingFangSC-Semibold.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		248157F2784F4C16B6A5B7F6 /* PingFangSC-Thin.otf */ = {isa = PBXFileReference; name = "PingFangSC-Thin.otf"; path = "../assets/fonts/PingFangSC-Thin.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
-		8246998D799B401C90CB1F80 /* PingFangSC-Ultralight.otf */ = {isa = PBXFileReference; name = "PingFangSC-Ultralight.otf"; path = "../assets/fonts/PingFangSC-Ultralight.otf"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,6 +85,20 @@
 				1077A33AD8C40ED7BF4509AF /* ExpoModulesProvider.swift */,
 			);
 			name = somnilightA0;
+			sourceTree = "<group>";
+		};
+		3D8F45A240E44AF1A9538ADD /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				EA9C4B351FAA4FEEBC7DE518 /* PingFangSC-Light.otf */,
+				CE5B10FDF32A4A9CA1F405C4 /* PingFangSC-Medium.otf */,
+				8D43C17D11304612BA46FAD9 /* PingFangSC-Regular.otf */,
+				1CAE9FA6CB0F4E9D98271552 /* PingFangSC-Semibold.otf */,
+				248157F2784F4C16B6A5B7F6 /* PingFangSC-Thin.otf */,
+				8246998D799B401C90CB1F80 /* PingFangSC-Ultralight.otf */,
+			);
+			name = Resources;
+			path = "";
 			sourceTree = "<group>";
 		};
 		6EF6114F71CEBC474937D315 /* ExpoModulesProviders */ = {
@@ -144,20 +158,6 @@
 			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
-		};
-		3D8F45A240E44AF1A9538ADD /* Resources */ = {
-			isa = "PBXGroup";
-			children = (
-				EA9C4B351FAA4FEEBC7DE518 /* PingFangSC-Light.otf */,
-				CE5B10FDF32A4A9CA1F405C4 /* PingFangSC-Medium.otf */,
-				8D43C17D11304612BA46FAD9 /* PingFangSC-Regular.otf */,
-				1CAE9FA6CB0F4E9D98271552 /* PingFangSC-Semibold.otf */,
-				248157F2784F4C16B6A5B7F6 /* PingFangSC-Thin.otf */,
-				8246998D799B401C90CB1F80 /* PingFangSC-Ultralight.otf */,
-			);
-			name = Resources;
-			sourceTree = "<group>";
-			path = "";
 		};
 /* End PBXGroup section */
 

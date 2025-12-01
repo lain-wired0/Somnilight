@@ -1,0 +1,136 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@11.6.2
+2 info using node@v24.11.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/lainmac/Code/Somnilight/somnilightA0/.npmrc
+5 silly config load:file:/Users/lainmac/.npmrc
+6 silly config load:file:/usr/local/lib/npm/etc/npmrc
+7 verbose title npm install
+8 verbose argv "install" "--cache" "false"
+9 verbose logfile logs-max:10 dir:/Users/lainmac/Code/Somnilight/somnilightA0/false/_logs/2025-12-01T01_57_33_712Z-
+10 verbose logfile /Users/lainmac/Code/Somnilight/somnilightA0/false/_logs/2025-12-01T01_57_33_712Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:4496293888 maxSize:1124073472 maxEntrySize:562036736
+13 silly idealTree buildDeps
+14 silly fetch manifest lightningcss-android-arm64@1.30.2
+15 silly packumentCache full:https://registry.npmjs.org/lightningcss-android-arm64 cache-miss
+16 http fetch GET 200 https://registry.npmjs.org/lightningcss-android-arm64 329ms (cache miss)
+17 silly packumentCache full:https://registry.npmjs.org/lightningcss-android-arm64 set size:undefined disposed:false
+18 silly fetch manifest lightningcss-darwin-x64@1.30.2
+19 silly packumentCache full:https://registry.npmjs.org/lightningcss-darwin-x64 cache-miss
+20 http fetch GET 200 https://registry.npmjs.org/npm 699ms
+21 http fetch GET 200 https://registry.npmjs.org/lightningcss-darwin-x64 246ms (cache miss)
+22 silly packumentCache full:https://registry.npmjs.org/lightningcss-darwin-x64 set size:undefined disposed:false
+23 silly fetch manifest lightningcss-freebsd-x64@1.30.2
+24 silly packumentCache full:https://registry.npmjs.org/lightningcss-freebsd-x64 cache-miss
+25 http fetch GET 200 https://registry.npmjs.org/lightningcss-freebsd-x64 100ms (cache miss)
+26 silly packumentCache full:https://registry.npmjs.org/lightningcss-freebsd-x64 set size:undefined disposed:false
+27 silly fetch manifest lightningcss-linux-arm-gnueabihf@1.30.2
+28 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-arm-gnueabihf cache-miss
+29 http fetch GET 200 https://registry.npmjs.org/lightningcss-linux-arm-gnueabihf 103ms (cache miss)
+30 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-arm-gnueabihf set size:undefined disposed:false
+31 silly fetch manifest lightningcss-linux-arm64-gnu@1.30.2
+32 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-arm64-gnu cache-miss
+33 http fetch GET 200 https://registry.npmjs.org/lightningcss-linux-arm64-gnu 748ms (cache miss)
+34 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-arm64-gnu set size:undefined disposed:false
+35 silly fetch manifest lightningcss-linux-arm64-musl@1.30.2
+36 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-arm64-musl cache-miss
+37 http fetch GET 200 https://registry.npmjs.org/lightningcss-linux-arm64-musl 98ms (cache miss)
+38 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-arm64-musl set size:undefined disposed:false
+39 silly fetch manifest lightningcss-linux-x64-gnu@1.30.2
+40 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-x64-gnu cache-miss
+41 http fetch GET 200 https://registry.npmjs.org/lightningcss-linux-x64-gnu 110ms (cache miss)
+42 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-x64-gnu set size:undefined disposed:false
+43 silly fetch manifest lightningcss-linux-x64-musl@1.30.2
+44 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-x64-musl cache-miss
+45 http fetch GET 200 https://registry.npmjs.org/lightningcss-linux-x64-musl 674ms (cache miss)
+46 silly packumentCache full:https://registry.npmjs.org/lightningcss-linux-x64-musl set size:undefined disposed:false
+47 silly fetch manifest lightningcss-win32-arm64-msvc@1.30.2
+48 silly packumentCache full:https://registry.npmjs.org/lightningcss-win32-arm64-msvc cache-miss
+49 http fetch GET 200 https://registry.npmjs.org/lightningcss-win32-arm64-msvc 787ms (cache miss)
+50 silly packumentCache full:https://registry.npmjs.org/lightningcss-win32-arm64-msvc set size:undefined disposed:false
+51 silly fetch manifest lightningcss-win32-x64-msvc@1.30.2
+52 silly packumentCache full:https://registry.npmjs.org/lightningcss-win32-x64-msvc cache-miss
+53 http fetch GET 200 https://registry.npmjs.org/lightningcss-win32-x64-msvc 98ms (cache miss)
+54 silly packumentCache full:https://registry.npmjs.org/lightningcss-win32-x64-msvc set size:undefined disposed:false
+55 silly placeDep ROOT lightningcss-android-arm64@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+56 silly placeDep ROOT lightningcss-darwin-x64@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+57 silly placeDep ROOT lightningcss-freebsd-x64@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+58 silly placeDep ROOT lightningcss-linux-arm-gnueabihf@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+59 silly placeDep ROOT lightningcss-linux-arm64-gnu@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+60 silly placeDep ROOT lightningcss-linux-arm64-musl@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+61 silly placeDep ROOT lightningcss-linux-x64-gnu@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+62 silly placeDep ROOT lightningcss-linux-x64-musl@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+63 silly placeDep ROOT lightningcss-win32-arm64-msvc@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+64 silly placeDep ROOT lightningcss-win32-x64-msvc@1.30.2 OK for: lightningcss@1.30.2 want: 1.30.2
+65 silly fetch manifest react@^15.5.3
+66 silly packumentCache full:https://registry.npmjs.org/react cache-miss
+67 http fetch GET 200 https://registry.npmjs.org/react 422ms (cache miss)
+68 silly packumentCache full:https://registry.npmjs.org/react set size:undefined disposed:false
+69 verbose stack Error: could not resolve
+69 verbose stack     at PlaceDep.failPeerConflict (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/place-dep.js:503:25)
+69 verbose stack     at new PlaceDep (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/place-dep.js:157:21)
+69 verbose stack     at #buildDepStep (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:945:18)
+69 verbose stack     at async Arborist.buildIdealTree (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/build-ideal-tree.js:182:7)
+69 verbose stack     at async Promise.all (index 1)
+69 verbose stack     at async Arborist.reify (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:114:5)
+69 verbose stack     at async Install.exec (/usr/local/lib/node_modules/npm/lib/commands/install.js:150:5)
+69 verbose stack     at async Npm.exec (/usr/local/lib/node_modules/npm/lib/npm.js:208:9)
+69 verbose stack     at async module.exports (/usr/local/lib/node_modules/npm/lib/cli/entry.js:67:5)
+70 error code ERESOLVE
+71 error ERESOLVE could not resolve
+72 error
+73 error While resolving: react-native-renderer@15.5.3
+73 error Found: react@19.1.0[2m[22m
+73 error [2mnode_modules/react[22m
+73 error   react@"19.1.0" from the root project
+73 error   [95mpeer[39m react@">=16.8.0" from @emotion/react@11.14.0[2m[22m
+73 error   [2mnode_modules/@emotion/react[22m
+73 error     [95mpeer[39m @emotion/react@"^11.0.0-rc.0" from @emotion/styled@11.14.1[2m[22m
+73 error     [2mnode_modules/@emotion/styled[22m
+73 error       peerOptional @emotion/styled@"^11.3.0" from @mui/material@7.3.5[2m[22m
+73 error       [2mnode_modules/@mui/material[22m
+73 error         [95mpeer[39m @mui/material@"^7.3.5" from @mui/icons-material@7.3.5[2m[22m
+73 error         [2mnode_modules/@mui/icons-material[22m
+73 error       2 more (@mui/styled-engine, @mui/system)
+73 error     peerOptional @emotion/react@"^11.5.0" from @mui/material@7.3.5[2m[22m
+73 error     [2mnode_modules/@mui/material[22m
+73 error       [95mpeer[39m @mui/material@"^7.3.5" from @mui/icons-material@7.3.5[2m[22m
+73 error       [2mnode_modules/@mui/icons-material[22m
+73 error     2 more (@mui/styled-engine, @mui/system)
+73 error   37 more (@emotion/styled, ...)
+73 error
+73 error Could not resolve dependency:
+73 error [95mpeer[39m react@"^15.5.3" from react-native-renderer@15.5.3[2m[22m
+73 error [2mnode_modules/react-native-renderer[22m
+73 error   react-native-renderer@"15.5.3" from the root project
+73 error
+73 error Conflicting peer dependency: react@15.7.0[2m[22m
+73 error [2mnode_modules/react[22m
+73 error   [95mpeer[39m react@"^15.5.3" from react-native-renderer@15.5.3[2m[22m
+73 error   [2mnode_modules/react-native-renderer[22m
+73 error     react-native-renderer@"15.5.3" from the root project
+73 error
+73 error Fix the upstream dependency conflict, or retry
+73 error this command with --force or --legacy-peer-deps
+73 error to accept an incorrect (and potentially broken) dependency resolution.
+74 error
+74 error
+74 error For a full report see:
+74 error /Users/lainmac/Code/Somnilight/somnilightA0/false/_logs/2025-12-01T01_57_33_712Z-eresolve-report.txt
+75 silly unfinished npm timer reify 1764554253956
+76 silly unfinished npm timer reify:loadTrees 1764554253956
+77 silly unfinished npm timer idealTree:buildDeps 1764554254157
+78 silly unfinished npm timer idealTree:node_modules/react-native-renderer 1764554257484
+79 verbose cwd /Users/lainmac/Code/Somnilight/somnilightA0
+80 verbose os Darwin 24.6.0
+81 verbose node v24.11.1
+82 verbose npm  v11.6.2
+83 notice
+83 notice New [36mpatch[39m version of npm available! [36m11.6.2[39m -> [34m11.6.4[39m
+83 notice Changelog: [34mhttps://github.com/npm/cli/releases/tag/v11.6.4[39m
+83 notice To update run: [4mnpm install -g npm@11.6.4[24m
+83 notice  { force: true, Symbol(proc-log.meta): true }
+84 verbose exit 1
+85 verbose code 1
+86 error A complete log of this run can be found in: /Users/lainmac/Code/Somnilight/somnilightA0/false/_logs/2025-12-01T01_57_33_712Z-debug-0.log
