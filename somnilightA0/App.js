@@ -11,7 +11,7 @@ import { BlurView } from 'expo-blur';
 //Online Assets
 
 //Local Assets
-import { textStyles } from './styles';
+import { colors, textStyles } from './styles';
 import { iconStyles } from './styles';
 
 //Screens [.js]
@@ -36,7 +36,7 @@ export default function App() {
           backgroundColor: 'rgba(33,29,80,0.8)',
           opacity: 80,
           borderTopWidth:1,
-          borderColor: '#7d7d7d',
+          borderColor: colors.edge,
           alignItems: 'center',
           height:77,
           paddingTop: 15,
