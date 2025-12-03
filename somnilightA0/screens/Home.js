@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Image, ImageBackground, Text, View, TouchableOpacity, StyleSheet, Switch, } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 
 //Dragable view
 import { useCallback, useMemo, useRef } from 'react';
@@ -11,9 +12,8 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 //Online Assets
 
 //Local style
-import { textStyles, colors } from '../styles';
+import { textStyles, colors, containers, ele } from '../styles';
 import { deviceHeight, deviceWidth} from '../App.js'
-import { LinearGradient } from 'expo-linear-gradient';
 
 
 let user_name = 'Mushroom'
@@ -85,14 +85,12 @@ const HomeConfigSlide = () => {
     
     // BottomSheetView ref
     const bottomSheetRef = useRef(null);
-
     // callbacks
     const handleSheetChanges = useCallback((index) => {
     console.log('handleSheetChanges', index);
     }, []);
 
-    const [isDeviceOn, setIsDeviceOn] = useState(false);
-    const toggleSwitch = () => setIsDeviceOn(previousState => !previousState);
+    
 
     return(
         <GestureHandlerRootView style={{
@@ -105,7 +103,7 @@ const HomeConfigSlide = () => {
             <BottomSheet
                 ref={bottomSheetRef}
                 
-                snapPoints={["40%", "90%"]}
+                snapPoints={["40%","90%"]}
                 onChange={handleSheetChanges}
                 backgroundComponent = { BlurSlideBG }
                 handleStyle = {{height:20,}}
@@ -119,7 +117,7 @@ const HomeConfigSlide = () => {
                 <BottomSheetView style={{
                     flex: 1,
                     padding: 15,
-                    alignItems: 'center',
+                    alignItems: 'left',
                 }}>
 
                     <Text style={{
@@ -135,44 +133,194 @@ const HomeConfigSlide = () => {
                         alignSelf:'left',
                     }}>
                         Pillow Alarm</Text>
-
-                    <Image //pillow
-                        source = {require('../assets/general_images/pillow_legacy.png')}
-                        style = {{
-                            alignSelf: 'center',
-                            width:220,
-                            height:150,
-                            top:75,
-                            position:'absolute',
-                        }}/>
                     
-                        <Image //wifi_icon
-                            source = {require('../assets/icons/wifi_act.png')}
-                            style = {{
-                                height:20,
-                                width:20,
-                                position:'absolute',
-                                top:34,
-                                left:142,
-                            }}/>
-
-                    <Switch 
-                        trackColor = {{true: '#8068E9',false:'rgba(61, 43, 142, 1)'}}
-                        thumbColor = {'rgba(255, 255, 255, 1)'}
-                        ios_backgroundColor="#3e3e3e"
-                        onValueChange={toggleSwitch}
-                        value={isDeviceOn}
-                        //location
-                        style= {{
+                    <Image //wifi_icon
+                        source = {require('../assets/icons/wifi_act.png')}
+                        style = {{
+                            height:20,
+                            width:20,
                             position:'absolute',
-                            right:20,
-                            top:25,
-
+                            top:34,
+                            left:142,
                         }}/>
+
+                    <DeviceSwitch location = {{
+                        position:'absolute',
+                        right:20,
+                        top:25,}}/>
+
+                    <View style = {{padding:30}}>
+                        <Image //pillow
+                            source = {require('../assets/general_images/pillow_legacy.png')}
+                            style = {{
+                                alignSelf: 'center',
+                                width:220,
+                                height:150,
+                                position:'relative',
+                            }}/>
+                    </View>
+                    <HomeControlPanel/>
+                    <HomeFeedbackPanel/>        
 
                 </BottomSheetView>
             </BottomSheet>
         </GestureHandlerRootView>
+    )
+}
+
+
+const DeviceSwitch = ({location}) => {
+    const [isDeviceOn, setIsDeviceOn] = useState(false);
+    const toggleSwitch = () => 
+        setIsDeviceOn(previousState => !previousState);
+        setPower(isDeviceOn)
+        
+
+    return (
+        <Switch 
+            trackColor = {{true: '#8068E9',false:'rgba(61, 43, 142, 1)'}}
+            thumbColor = {'rgba(255, 255, 255, 1)'}
+            ios_backgroundColor = "#3e3e3e"
+            onValueChange = {toggleSwitch}
+            value = {isDeviceOn}
+            style= {location}
+            />
+        
+    )
+}
+
+async function getPower(isOn) {
+    const res = await fetch ('http://localhost:1880/set_power',{
+        method:"GET",
+        headers:{
+            "Content-Type": "application.json"
+        },
+    })
+}
+
+async function setPower(isOn) {
+    const res = await fetch('http://localhost:1880/set_power',{
+        method: "POST",
+        headers:{
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            power: isOn ? "on" : "off"
+        })
+    });
+
+    const data = await res.json();
+    console.log("set_power response:",data)
+    isDevicePowerOn = data.power.on
+}
+
+const HomeControlPanel = () => {
+
+    return (
+        <BlurView 
+                tint="dark" intensity={30}
+                style = {{
+                    ...containers.violetLightC20,
+                    padding:5,
+                    height:280,
+                    borderRadius:20,
+                    overflow:'hidden',
+                    ...ele.gnrborder,
+                    }}>
+            <Text style = {TitleInRoundView}>Control</Text>
+            <View style = {{flexDirection:'row', height:100,flex:7}}>
+                <View style = {{...containers.violetDarkC20,flex:2}}>
+                    <HomeAlarmSetPanel/>
+                </View>
+                <View style = {{...containers.violetDarkC20,flex:1}}>
+
+                </View>                  
+                <View style = {{...containers.violetDarkC20,flex:1}}>
+
+                </View>                                             
+            </View>
+            <View style = {{...containers.violetDarkC20,flex:3,flexDirection:'row'}}>
+                <View style = {{...containers.CenterAJ,flex:1,}}>
+                    <Text style ={{...textStyles.medium16,}}>Presets</Text>
+                </View>
+                <View style = {{...containers.CenterAJ,flex:2}}>
+                    <View style = {{
+                            alignItems:'center',
+                            flexDirection:'row',
+                            right:5,}}>
+                        <TouchableOpacity>
+                            <Image source={require('../assets/general_images/preJade.png')}
+                                style = {containers.presetButton}/>
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                            <Image source={require('../assets/general_images/preMist.png')}
+                                style = {containers.presetButton}/>
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                            <Image source={require('../assets/general_images/preCloud.png')}
+                                style = {containers.presetButton}/>
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                            <View style = {{
+                                ...containers.presetButton,
+                                backgroundColor:"#4E3692",
+                                alignItems:'center',
+                                justifyContent:'center',}}>
+                                <Image source={require('../assets/icons/plus.png')}/>
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                    
+                </View>
+            </View>
+        </BlurView>
+    )
+}
+
+const HomeAlarmSetPanel = () => {
+    return(
+        <TouchableOpacity style = {{flex:1}}>
+            <Text style = {{...textStyles.medium16,top:13,left:17}}>Alarm Set</Text>
+            <View style={{top:20,left:24}}>
+                <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'} tcolor={'rgba(116,119,135,1)'}/>
+                <Text style = {{...textStyles.semibold15,lineHeight:18}}>11:00 PM</Text>
+            </View>
+            <View style={{top:25,left:24}}>
+                <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'} tcolor={'rgba(116,119,135,1)'}/>
+                <Text style = {{...textStyles.semibold15,lineHeight:18}}>17:00 AM</Text>
+            </View>
+            
+        </TouchableOpacity>
+    )
+}
+
+const HomeFeedbackPanel = () => {
+    return (
+        <View style = {{
+                ...containers.violetDarkC20, 
+                backgroundColor:'rgba(96,68,175,0.4)',
+                padding:5,
+                marginTop:12,
+                marginHorizontal:0,
+                height: 110,
+                ...ele.gnrborder,
+                }}>
+            <Text style = {TitleInRoundView}>Help & Feedback</Text>
+            <View style = {{alignItems:'center',justifyContent:'space-around',flexDirection:'row',flex:1}}>
+                <TouchableOpacity style = {{justifyContent:"center"}}>
+                    <Image source = {require('../assets/icons/guides.png')} style = {ele.icon50}/>
+                    <Text style = {{...textStyles.reg11,lineHeight:12,alignSelf:'center'}}>Guides</Text> 
+                </TouchableOpacity>
+                <TouchableOpacity style = {{justifyContent:"center"}}>
+                    <Image source = {require('../assets/icons/faq.png')} style = {ele.icon50}/>
+                    <Text style = {{...textStyles.reg11,lineHeight:12,alignSelf:'center'}}>FAQ</Text> 
+                </TouchableOpacity>
+                <TouchableOpacity style = {{justifyContent:"center"}}>
+                    <Image source = {require('../assets/icons/more.png')} style = {ele.icon50}/>
+                    <Text style = {{...textStyles.reg11,lineHeight:12,alignSelf:'center'}}>More</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
     )
 }
 
@@ -190,19 +338,32 @@ const BlurSlideBG = () => {
             style={{
             ...basicBlurC20,
             padding:15,
-            borderWidth:1,
-            borderColor: colors.edge
+            ...ele.gnrborder,
             }}>
             </BlurView>
     </View>
   )
 }
 
+const TitleInRoundView = {
+    ...textStyles.semibold15, fontSize:17,height:33,top:8,left:13
+}
+
 const basicBlurC20 = {
-    //Blur Effect
     ...StyleSheet.absoluteFill,
     overflow:'hidden',
     borderRadius:20,
+}
+
+let vart = '../assets/icons/moonsleep.png'
+
+const Icon12text11 = ({addr,text,tcolor}) => {
+    return (
+        <View style={{flexDirection:'row',alignItems:'center'}}>
+            <Image source={addr} style = {{height:12,width:12}}/>
+            <Text style = {{...textStyles.reg11,color:tcolor,left:3}}>{text}</Text>
+        </View>
+    )
 }
 
 const hp_style = {
@@ -211,4 +372,5 @@ const hp_style = {
     resizeMode: 'stretch',
     flex:1,
 }
+
 export { HomeScreen }

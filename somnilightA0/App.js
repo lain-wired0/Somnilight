@@ -21,11 +21,11 @@ import { MyinfoScreen } from './screens/Myinfo';
 
 const Tabs = createBottomTabNavigator();
 
+
 //[Temporary] TabIconColor 
 let InactiveColor = '#908EA7'
 let ActiveColor = '#ffffffff'
 
-let showheader = false
 
 export default function App() {
   return (
