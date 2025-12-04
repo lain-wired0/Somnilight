@@ -4,6 +4,12 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 
+//react-navigation
+import { createStaticNavigation, NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+
 //Dragable view
 import { useCallback, useMemo, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -15,6 +21,13 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { textStyles, colors, containers, ele } from '../styles';
 import { deviceHeight, deviceWidth} from '../App.js'
 
+//Local Navigation
+import { Tabs } from '../App.js';
+import { Stacks } from '../App.js';
+
+//Local Screens
+import { HomeAlarmSetScreen } from './HomeAlarmSet.js';
+import LightAdjust from './LightAdjust.js';
 
 let user_name = 'Mushroom'
 
@@ -27,13 +40,20 @@ function getTodayDate() {
   return (`${month} ${day}, ${year}`)
 }
 
-let incord = 480 //Top:60, Rest:480
+export function HomeStack() {
+    return(
+        <Stacks.Navigator
+            screenOptions={({route}) => ({headerShown: !(route.name === 'Home')})}
+        >
+            <Stacks.Screen name = "Home" component = { HomeScreen }/>
+            <Stacks.Screen name = "HomeAlarmSet" component = { HomeAlarmSetScreen }/>
+            <Stacks.Screen name = "LightAdjust" component={ LightAdjust }/>
+        </Stacks.Navigator>
+    )
+}
 
-const HomeScreen = () => {
-
-
-    
-return (
+const HomeScreen = (pass = {navigation, route}) => {
+    return (
     <View style = {{
         backgroundColor:'#05011C',
         flex:1,
@@ -69,7 +89,7 @@ return (
             <View style = {{
                 ...StyleSheet.absoluteFill
             }}>
-                <HomeConfigSlide/>
+                <HomeConfigSlide pass = {pass}/>
             </View>
             
 
@@ -81,17 +101,13 @@ return (
     
 }
 
-const HomeConfigSlide = () => {
-    
+const HomeConfigSlide = ({pass}) => {
     // BottomSheetView ref
     const bottomSheetRef = useRef(null);
     // callbacks
     const handleSheetChanges = useCallback((index) => {
     console.log('handleSheetChanges', index);
     }, []);
-
-    
-
     return(
         <GestureHandlerRootView style={{
             flex: 1,
@@ -159,8 +175,8 @@ const HomeConfigSlide = () => {
                                 position:'relative',
                             }}/>
                     </View>
-                    <HomeControlPanel/>
-                    <HomeFeedbackPanel/>        
+                    <HomeControlPanel pass = {pass}/>
+                    <HomeFeedbackPanel pass = {pass}/>        
 
                 </BottomSheetView>
             </BottomSheet>
@@ -189,17 +205,8 @@ const DeviceSwitch = ({location}) => {
     )
 }
 
-async function getPower(isOn) {
-    const res = await fetch ('http://localhost:1880/set_power',{
-        method:"GET",
-        headers:{
-            "Content-Type": "application.json"
-        },
-    })
-}
-
 async function setPower(isOn) {
-    const res = await fetch('http://localhost:1880/set_power',{
+    const res = await fetch('http://somnilight.online:1880/set_power',{
         method: "POST",
         headers:{
             "Content-Type": "application/json"
@@ -214,7 +221,7 @@ async function setPower(isOn) {
     isDevicePowerOn = data.power.on
 }
 
-const HomeControlPanel = () => {
+const HomeControlPanel = ({pass}) => {
 
     return (
         <BlurView 
@@ -230,10 +237,29 @@ const HomeControlPanel = () => {
             <Text style = {TitleInRoundView}>Control</Text>
             <View style = {{flexDirection:'row', height:100,flex:7}}>
                 <View style = {{...containers.violetDarkC20,flex:2}}>
-                    <HomeAlarmSetPanel/>
+
+                    <TouchableOpacity 
+                            style = {{flex:1}}
+                            onPress = {() => pass.navigation.navigate('HomeAlarmSet')}
+                            >
+                        <Text style = {{...textStyles.medium16,top:13,left:17}}>Alarm Set</Text>
+                        <View style={{top:20,left:24}}>
+                            <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'} tcolor={'rgba(116,119,135,1)'}/>
+                            <Text style = {{...textStyles.semibold15,lineHeight:18}}>11:00 PM</Text>
+                        </View>
+                        <View style={{top:25,left:24}}>
+                            <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'} tcolor={'rgba(116,119,135,1)'}/>
+                            <Text style = {{...textStyles.semibold15,lineHeight:18}}>17:00 AM</Text>
+                        </View>
+                        
+                    </TouchableOpacity>
+
                 </View>
                 <View style = {{...containers.violetDarkC20,flex:1}}>
+                    <TouchableOpacity style = {{flex:1}} 
+                        onPress={() => pass.navigation.navigate('LightAdjust')}>
 
+                    </TouchableOpacity>
                 </View>                  
                 <View style = {{...containers.violetDarkC20,flex:1}}>
 
@@ -277,9 +303,12 @@ const HomeControlPanel = () => {
     )
 }
 
-const HomeAlarmSetPanel = () => {
+const HomeAlarmSetPanel = ({pass}) => {
     return(
-        <TouchableOpacity style = {{flex:1}}>
+        <TouchableOpacity 
+                style = {{flex:1}}
+                onPress = {() => pass.navigation.navigate('HomeAlarmSet')}
+                >
             <Text style = {{...textStyles.medium16,top:13,left:17}}>Alarm Set</Text>
             <View style={{top:20,left:24}}>
                 <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'} tcolor={'rgba(116,119,135,1)'}/>

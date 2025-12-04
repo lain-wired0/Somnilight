@@ -1,0 +1,157 @@
+[
+    {
+        "id": "8d6b6b678a89c02a",
+        "type": "tab",
+        "label": "流程 2",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "8a6c22e3ffc55abc",
+        "type": "http in",
+        "z": "8d6b6b678a89c02a",
+        "name": "set_alarm",
+        "url": "/set_alarm",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 260,
+        "wires": [
+            [
+                "ad4ebc5fd21c33af"
+            ]
+        ]
+    },
+    {
+        "id": "734d6842232077f2",
+        "type": "http response",
+        "z": "8d6b6b678a89c02a",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 830,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "ed79a3bf4327f381",
+        "type": "http in",
+        "z": "8d6b6b678a89c02a",
+        "name": "check_status",
+        "url": "/check_status",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 170,
+        "y": 360,
+        "wires": [
+            [
+                "02e9ec47831bad01"
+            ]
+        ]
+    },
+    {
+        "id": "df9249e29c64d85e",
+        "type": "http response",
+        "z": "8d6b6b678a89c02a",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 830,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "ad4ebc5fd21c33af",
+        "type": "function",
+        "z": "8d6b6b678a89c02a",
+        "name": "set_alarm",
+        "func": "var payload = msg.payload;\n\nvar alarmTime = payload.time;                  // \"07:30\"\nvar lightDuration = payload.light_duration || 30; // 分钟\n\nif (!alarmTime) {\n    msg.statusCode = 400;\n    msg.payload = { ok: false, error: \"Missing 'time' field\" };\n    return msg;\n}\n\nvar now = new Date();\n\nvar alarm = {\n    time: alarmTime,\n    light_duration: lightDuration,\n    created_at_ts: now.getTime(),  // 毫秒时间戳（方便计算）\n    created_at: now.toLocaleString(\"zh-CN\", { hour12: false })\n};\n\n\nflow.set(\"alarm\", alarm);\n\nmsg.statusCode = 200;\nmsg.payload = {\n    ok: true,\n    message: \"Alarm set successfully\",\n    alarm: alarm\n};\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 480,
+        "y": 260,
+        "wires": [
+            [
+                "734d6842232077f2"
+            ]
+        ]
+    },
+    {
+        "id": "02e9ec47831bad01",
+        "type": "function",
+        "z": "8d6b6b678a89c02a",
+        "name": "check_status",
+        "func": "// 先看电源状态\nvar power = flow.get(\"power\");\n\n// 默认当作开机（如果你希望默认是关机也可以改）\nif (power && power.on === false) {\n    // 电源关机时，统一返回 OFF 状态，亮度 0\n    msg.statusCode = 200;\n    msg.payload = {\n        ok: true,\n        status: \"OFF\",\n        brightness: 0,\n        alarm: flow.get(\"alarm\") || null,\n        power: power\n    };\n    return msg;\n}\n\n\n// 读取闹钟设置\nvar alarm = flow.get(\"alarm\");\n\nif (!alarm) {\n    msg.statusCode = 404;\n    msg.payload = { ok: false, error: \"No alarm set\" };\n    return msg;\n}\n\n// 1. 解析闹钟时间（字符串 \"HH:MM\" → 今天的时间戳）\nfunction getAlarmTimestamp(timeStr) {\n    var parts = timeStr.split(\":\");\n    var h = Number(parts[0]);\n    var m = Number(parts[1]);\n    var now = new Date();\n    var t = new Date(\n        now.getFullYear(),\n        now.getMonth(),\n        now.getDate(),\n        h, m, 0, 0\n    );\n    // 如果已经过了这个时间很多小时，可以按明天算（可选）\n    if (t.getTime() < now.getTime() - 12 * 60 * 60 * 1000) {\n        t.setDate(t.getDate() + 1);\n    }\n    return t.getTime();\n}\n\nvar nowTs = Date.now();\nvar alarmTs = getAlarmTimestamp(alarm.time);\nvar durationMs = alarm.light_duration * 60 * 1000;\n\nvar wakeStartTs = alarmTs - durationMs;\n\n// 2. 根据当前时间判断状态 & 进度\nvar status;\nvar brightness;\n\nif (nowTs < wakeStartTs) {\n    // 还没到渐亮开始时间\n    status = \"WAITING\";\n    brightness = 0;\n\n} else if (nowTs >= alarmTs) {\n    // 已过闹钟时间\n    status = \"DONE\";\n    brightness = 100;\n\n} else {\n    // 渐亮区间：wakeStartTs ~ alarmTs\n    status = \"WAKING\";\n    var progress = (nowTs - wakeStartTs) / durationMs; // 0~1\n\n    // 3. 在这里决定“线性还是非线性”\n    // 线性：brightness = progress\n    // 非线性示例：\n    //   - 慢起快冲：progress^2\n    //   - 先快后慢：Math.sqrt(progress)\n    //   - 平滑 S 形：0.5 - 0.5 * Math.cos(Math.PI * progress)\n\n    // 假设我们用一个“先慢后快”的日出效果：\n    var curved = progress * progress;  // 非线性：平方曲线\n    brightness = Math.round(curved * 100);\n}\n\n// 4. 返回给客户端\nvar now = new Date();\n\n// 这些变量你在前面已经算过：\n/*\nvar nowTs = Date.now();\nvar alarmTs = getAlarmTimestamp(alarm.time);\nvar durationMs = alarm.light_duration * 60 * 1000;\nvar wakeStartTs = alarmTs - durationMs;\n*/\n\nmsg.statusCode = 200;\nmsg.payload = {\n    ok: true,\n    status: status,\n    brightness: brightness,\n    alarm: alarm,\n    now_local: now.toLocaleString(\"zh-CN\", { hour12: false }),\n    wake_start_local: new Date(wakeStartTs).toLocaleString(\"zh-CN\", { hour12: false }),\n    alarm_time_local: new Date(alarmTs).toLocaleString(\"zh-CN\", { hour12: false })\n};\nreturn msg;\n\n\nmsg.statusCode = 200;\nmsg.payload = {\n    ok: true,\n    status: status,\n    brightness: brightness,\n    alarm: alarm\n};\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 360,
+        "wires": [
+            [
+                "df9249e29c64d85e"
+            ]
+        ]
+    },
+    {
+        "id": "de52d53805a70ae2",
+        "type": "http in",
+        "z": "8d6b6b678a89c02a",
+        "name": "",
+        "url": "/set_power",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 180,
+        "y": 160,
+        "wires": [
+            [
+                "3ba157ae5450a03c"
+            ]
+        ]
+    },
+    {
+        "id": "37f1b41eadc62527",
+        "type": "http response",
+        "z": "8d6b6b678a89c02a",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 830,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "3ba157ae5450a03c",
+        "type": "function",
+        "z": "8d6b6b678a89c02a",
+        "name": "set_power",
+        "func": "var payload = msg.payload;\n\n// 允许三种写法：\n// { \"power\": \"on\" }\n// { \"power\": \"off\" }\n// { \"on\": true } / { \"on\": false }\nvar powerField = payload.power;\nvar onField = payload.on;\n\nvar isOn;\n\n// 判断一下用户发的格式\nif (typeof powerField === \"string\") {\n    if (powerField.toLowerCase() === \"on\") isOn = true;\n    else if (powerField.toLowerCase() === \"off\") isOn = false;\n}\n\nif (typeof onField === \"boolean\") {\n    isOn = onField;\n}\n\n// 如果还是没判断出来，就报错\nif (typeof isOn !== \"boolean\") {\n    msg.statusCode = 400;\n    msg.payload = {\n        ok: false,\n        error: \"Please send {\\\"power\\\":\\\"on\\\"} or {\\\"power\\\":\\\"off\\\"}\"\n    };\n    return msg;\n}\n\n// 存到 flow 里\nvar powerState = {\n    on: isOn,\n    updated_at: new Date().toLocaleString(\"zh-CN\", { hour12: false })\n};\nflow.set(\"power\", powerState);\n\n// 可选：如果关机，顺便把亮度设为 0（不改闹钟时间）\nif (!isOn) {\n    var alarm = flow.get(\"alarm\");\n    if (alarm) {\n        alarm.brightness = 0;\n        alarm.status = \"OFF\";   // 你也可以叫 DISABLED\n        flow.set(\"alarm\", alarm);\n    }\n}\n\nmsg.statusCode = 200;\nmsg.payload = {\n    ok: true,\n    power: powerState\n};\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 160,
+        "wires": [
+            [
+                "37f1b41eadc62527"
+            ]
+        ]
+    }
+]
