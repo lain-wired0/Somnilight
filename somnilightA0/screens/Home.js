@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, ImageBackground, Text, View, TouchableOpacity, StyleSheet, Switch, } from 'react-native';
+import { Image, ImageBackground, Text, View, TouchableOpacity, StyleSheet, Switch, Button } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +20,7 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 //Local style
 import { textStyles, colors, containers, ele } from '../styles';
 import { deviceHeight, deviceWidth} from '../App.js'
+import { Icon12text11 } from '../styles';
 
 //Local Navigation
 import { Tabs } from '../App.js';
@@ -28,6 +29,7 @@ import { Stacks } from '../App.js';
 //Local Screens
 import { HomeAlarmSetScreen } from './HomeAlarmSet.js';
 import LightAdjust from './LightAdjust.js';
+import { HeaderBackground } from '@react-navigation/elements';
 
 let user_name = 'Mushroom'
 
@@ -43,11 +45,13 @@ function getTodayDate() {
 export function HomeStack() {
     return(
         <Stacks.Navigator
-            screenOptions={({route}) => ({headerShown: !(route.name === 'Home')})}
+            screenOptions={({route}) => ({
+                headerShown: false
+            })}
         >
             <Stacks.Screen name = "Home" component = { HomeScreen }/>
-            <Stacks.Screen name = "HomeAlarmSet" component = { HomeAlarmSetScreen }/>
             <Stacks.Screen name = "LightAdjust" component={ LightAdjust }/>
+
         </Stacks.Navigator>
     )
 }
@@ -186,12 +190,11 @@ const HomeConfigSlide = ({pass}) => {
 
 
 const DeviceSwitch = ({location}) => {
-    const [isDeviceOn, setIsDeviceOn] = useState(false);
+    const init = initPower()
+    const [isDeviceOn, setIsDeviceOn] = useState(init);
     const toggleSwitch = () => 
         setIsDeviceOn(previousState => !previousState);
-        setPower(isDeviceOn)
-        
-
+        setPower(isDeviceOn);
     return (
         <Switch 
             trackColor = {{true: '#8068E9',false:'rgba(61, 43, 142, 1)'}}
@@ -205,8 +208,17 @@ const DeviceSwitch = ({location}) => {
     )
 }
 
+async function initPower() {
+    await fetch('http://somnilight.online:1880/pillow/power')
+        .then(response => response.json())
+
+    return (data.power == 'on' ? true :false)
+}
+
+
+
 async function setPower(isOn) {
-    const res = await fetch('http://somnilight.online:1880/set_power',{
+    const res = await fetch('http://somnilight.online:1880/pillow/power',{
         method: "POST",
         headers:{
             "Content-Type": "application/json"
@@ -218,7 +230,7 @@ async function setPower(isOn) {
 
     const data = await res.json();
     console.log("set_power response:",data)
-    isDevicePowerOn = data.power.on
+
 }
 
 const HomeControlPanel = ({pass}) => {
@@ -238,21 +250,7 @@ const HomeControlPanel = ({pass}) => {
             <View style = {{flexDirection:'row', height:100,flex:7}}>
                 <View style = {{...containers.violetDarkC20,flex:2}}>
 
-                    <TouchableOpacity 
-                            style = {{flex:1}}
-                            onPress = {() => pass.navigation.navigate('HomeAlarmSet')}
-                            >
-                        <Text style = {{...textStyles.medium16,top:13,left:17}}>Alarm Set</Text>
-                        <View style={{top:20,left:24}}>
-                            <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'} tcolor={'rgba(116,119,135,1)'}/>
-                            <Text style = {{...textStyles.semibold15,lineHeight:18}}>11:00 PM</Text>
-                        </View>
-                        <View style={{top:25,left:24}}>
-                            <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'} tcolor={'rgba(116,119,135,1)'}/>
-                            <Text style = {{...textStyles.semibold15,lineHeight:18}}>17:00 AM</Text>
-                        </View>
-                        
-                    </TouchableOpacity>
+                    <HomeAlarmSetPanel pass={pass}/>
 
                 </View>
                 <View style = {{...containers.violetDarkC20,flex:1}}>
@@ -311,11 +309,11 @@ const HomeAlarmSetPanel = ({pass}) => {
                 >
             <Text style = {{...textStyles.medium16,top:13,left:17}}>Alarm Set</Text>
             <View style={{top:20,left:24}}>
-                <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'} tcolor={'rgba(116,119,135,1)'}/>
+                <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'}/>
                 <Text style = {{...textStyles.semibold15,lineHeight:18}}>11:00 PM</Text>
             </View>
             <View style={{top:25,left:24}}>
-                <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'} tcolor={'rgba(116,119,135,1)'}/>
+                <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'}/>
                 <Text style = {{...textStyles.semibold15,lineHeight:18}}>17:00 AM</Text>
             </View>
             
@@ -382,17 +380,6 @@ const basicBlurC20 = {
     ...StyleSheet.absoluteFill,
     overflow:'hidden',
     borderRadius:20,
-}
-
-let vart = '../assets/icons/moonsleep.png'
-
-const Icon12text11 = ({addr,text,tcolor}) => {
-    return (
-        <View style={{flexDirection:'row',alignItems:'center'}}>
-            <Image source={addr} style = {{height:12,width:12}}/>
-            <Text style = {{...textStyles.reg11,color:tcolor,left:3}}>{text}</Text>
-        </View>
-    )
 }
 
 const hp_style = {
