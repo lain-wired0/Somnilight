@@ -46,7 +46,8 @@ function RootTabs() {
   return(
   <Tabs.Navigator 
       screenOptions={ ( {route} ) => ({
-        headerShown: (route.name !== 'Home'),
+        //headerShown: (route.name !== 'Home'),
+        headerShown: route.name === 'Myinfo' ? false : true,
         tabBarStyle: {
           backgroundColor: 'rgba(33,29,80,0.8)',
           opacity: 80,

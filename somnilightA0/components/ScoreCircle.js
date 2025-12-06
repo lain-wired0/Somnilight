@@ -1,51 +1,80 @@
+// ScoreCircle.js
+// 功能：只绘制带动画的圆形进度条（不包含任何文字）
+// 需求：每次分数变化从 0% 起动画，且视觉方向为逆时针
+
 import React, { useEffect, useRef } from 'react';
-import { View, Text, Animated, Easing } from 'react-native';
+import { Animated } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { styles } from '../screens/Stats/StatsStyles';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const ScoreCircle = ({ score = 0, size = 80, strokeWidth = 8, color = '#5D5FEF' }) => {
+const ScoreCircle = ({
+  score = 0,
+  size = 80,
+  strokeWidth = 8,
+  color = '#5D5FEF',
+  backgroundColor = 'rgba(255,255,255,0.15)',
+  duration = 800,
+}) => {
+  // 当前动画进度（0-100）
+  const animatedValue = useRef(new Animated.Value(0)).current;
+
   const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const progress = useRef(new Animated.Value(0)).current;
+  const circumference = 2 * Math.PI * radius;
 
   useEffect(() => {
-    progress.setValue(0);
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: 500, // 动画时长
-      easing: Easing.inOut(Easing.ease),
-      useNativeDriver: false,
-    }).start();
-  }, [score]);
+    const clamped = Math.max(0, Math.min(100, score));
 
-  const animatedStrokeDashoffset = progress.interpolate({
-    inputRange: [0, 1],
-    outputRange: [circumference, circumference - (score / 100) * circumference],
+    // 每次从 0 重新开始
+    animatedValue.setValue(0);
+
+    const anim = Animated.timing(animatedValue, {
+      toValue: clamped,
+      duration,
+      useNativeDriver: false,
+    });
+
+    anim.start();
+
+    return () => {
+      anim.stop();
+    };
+  }, [score, duration, animatedValue]);
+
+  const strokeDashoffset = animatedValue.interpolate({
+    inputRange: [0, 100],
+    outputRange: [circumference, 0],
+    extrapolate: 'clamp',
   });
 
   return (
-    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
-      <Svg 
-        height={size} 
-        width={size} 
-        viewBox={`0 0 ${size} ${size}`}
-        style={{ transform: [{ scaleX: -1 }] }}  
-      >
-        <Circle cx={size / 2} cy={size / 2} r={radius} stroke="rgba(255, 255, 255, 0.1)" strokeWidth={strokeWidth} fill="transparent" />
+    // 在这里做水平镜像，圆环视觉方向就变成逆时针
+    <Animated.View style={{ transform: [{ scaleX: -1 }] }}>
+      <Svg width={size} height={size}>
+        <Circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={backgroundColor}
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
         <AnimatedCircle
-          cx={size / 2} cy={size / 2} r={radius} stroke={color} strokeWidth={strokeWidth} fill="transparent"
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke={color}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          fill="none"
           strokeDasharray={circumference}
-          strokeDashoffset={animatedStrokeDashoffset}
-          strokeLinecap="round" rotation="-90" origin={`${size / 2}, ${size / 2}`}
+          strokeDashoffset={strokeDashoffset}
+          rotation={-90}
+          originX={size / 2}
+          originY={size / 2}
         />
       </Svg>
-      <View style={{ position: 'absolute', justifyContent: 'center', alignItems: 'center' }}>
-        <Text style={styles.scoreText}>{score}</Text>
-        <Text style={styles.scoreLabel}>Quality</Text>
-      </View>
-    </View>
+    </Animated.View>
   );
 };
 
