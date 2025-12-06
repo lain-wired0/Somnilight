@@ -22,7 +22,7 @@ export default function LightAdjust() {
   useEffect(() => {
     const loadInitialBrightness = async () => {
       try {
-        const res = await fetch('http://somnilight.online:1880/get_state');
+        const res = await fetch('http://150.158.158.233:1880/get_state');
         const data = await res.json();
         if (data.brightness !== undefined) {
           setBrightness(data.brightness);
@@ -54,7 +54,7 @@ export default function LightAdjust() {
   // 发送数据到 Node-RED
   const sendToNodeRed = useCallback(async (value) => {
     try {
-      const res = await fetch('http://somnilight.online:1880/set_state', {
+      const res = await fetch('http://150.158.158.233:1880/set_state', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

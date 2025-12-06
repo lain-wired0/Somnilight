@@ -19,7 +19,7 @@ import { iconStyles } from './styles';
 
 //Screens [.js]
 import { HomeScreen, HomeStack } from './screens/Home';
-import { StatsScreen } from './screens/Stats';
+import { StatsScreen } from './screens/Stats/Stats';
 import { MyinfoScreen } from './screens/Myinfo';
 import { HoverEffect } from 'react-native-gesture-handler';
 

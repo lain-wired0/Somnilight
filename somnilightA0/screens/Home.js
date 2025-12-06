@@ -19,7 +19,7 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 //Local style
 import { textStyles, colors, containers, ele } from '../styles';
-import { deviceHeight, deviceWidth} from '../App.js'
+const { width: deviceWidth, height: deviceHeight } = Dimensions.get('window');
 
 //Local Navigation
 import { Tabs } from '../App.js';
@@ -206,7 +206,7 @@ const DeviceSwitch = ({location}) => {
 }
 
 async function setPower(isOn) {
-    const res = await fetch('http://somnilight.online:1880/set_power',{
+    const res = await fetch('http://150.158.158.233:1880/set_power',{
         method: "POST",
         headers:{
             "Content-Type": "application/json"
