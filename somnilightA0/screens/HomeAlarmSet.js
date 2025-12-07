@@ -1,10 +1,11 @@
-import React , {useState} from 'react';
+import React , {useState, useEffect} from 'react';
 import { 
     Image, ImageBackground,Text, View, StyleSheet, 
     TouchableOpacity, TouchableHighlight,
-    Modal, TouchableWithoutFeedback, 
+    TouchableWithoutFeedback, 
     } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
+import Modal from 'react-native-modal';
 
 
 import { deviceHeight, deviceWidth } from '../App';
@@ -24,6 +25,64 @@ const liveAlarmSettings = {
 
 export function HomeAlarmSetScreen({navigation}) {
     const live = liveAlarmSettings
+    const [bedtimeHour, setBedtimeHour] = useState(23);
+    const [bedtimeMin, setBedtimeMin] = useState(0);
+    const [sunriseHour, setSunriseHour] = useState(6);
+    const [sunriseMin, setSunriseMin] = useState(30);
+    const [wakeupHour, setWakeupHour] = useState(7);
+    const [wakeupMin, setWakeupMin] = useState(0);
+    const [sunriseOffsetMin, setSunriseOffsetMin] = useState(30); // difference between wakeup and sunrise in minutes
+
+    // Helper function to check if a time is between two times (handling midnight wrap)
+    const isTimeBetween = (checkHour, checkMin, startHour, startMin, endHour, endMin) => {
+        const checkTime = checkHour * 60 + checkMin;
+        const startTime = startHour * 60 + startMin;
+        const endTime = endHour * 60 + endMin;
+
+        if (startTime <= endTime) {
+            // Normal case: start and end are on same day (e.g., 06:00 to 07:00)
+            return checkTime >= startTime && checkTime <= endTime;
+        } else {
+            // Midnight wrap case: start is PM, end is AM (e.g., 23:00 to 08:00)
+            return checkTime >= startTime || checkTime <= endTime;
+        }
+    };
+
+    const subtractMinutes = (hour, min, delta) => {
+        const total = (hour * 60 + min - delta + 1440) % 1440;
+        return { h: Math.floor(total / 60), m: total % 60 };
+    };
+
+    const minutesDiff = (h1, m1, h2, m2) => {
+        // difference from (h1:m1) to (h2:m2) in minutes, wrapping 24h
+        return ((h2 * 60 + m2) - (h1 * 60 + m1) + 1440) % 1440;
+    };
+
+    // Validate and constrain sunrise time
+    const handleSunriseChange = (hour, min) => {
+        if (isTimeBetween(hour, min, bedtimeHour, bedtimeMin, wakeupHour, wakeupMin)) {
+            setSunriseHour(hour);
+            setSunriseMin(min);
+            const offset = minutesDiff(hour, min, wakeupHour, wakeupMin);
+            setSunriseOffsetMin(offset);
+        }
+        // If invalid, don't update - keep previous value
+    };
+
+    const handleWakeupChange = (hour, min) => {
+        setWakeupHour(hour);
+        setWakeupMin(min);
+
+        const suggested = subtractMinutes(hour, min, sunriseOffsetMin);
+        if (isTimeBetween(suggested.h, suggested.m, bedtimeHour, bedtimeMin, hour, min)) {
+            setSunriseHour(suggested.h);
+            setSunriseMin(suggested.m);
+        } else {
+            // Keep previous sunrise if suggested time is out of bounds
+            // sunriseOffsetMin remains unchanged so future changes can still apply when valid
+        }
+    };
+
     return (
         <View style = {{flex:1,backgroundColor:'rgba(9,0,31,1)',alignItems:'center'}}>
             <ImageBackground source={require('../assets/general_images/alarmSetBG.png')}
@@ -58,17 +117,35 @@ export function HomeAlarmSetScreen({navigation}) {
                             <View style = {lstyles.timeSetCell}>
                                 <TimeSetCell 
                                     addr = {require('../assets/icons/moonsleep.png')} 
-                                    text = {'Bedtime'} />
+                                    text = {'Bedtime'} 
+                                    aniIn = {'fadeInLeft'}
+                                    aniOut = {'fadeOutLeft'}
+                                    hour = {bedtimeHour}
+                                    min = {bedtimeMin}
+                                    onTimeChange = {(h, m) => {setBedtimeHour(h); setBedtimeMin(m);}}
+                                    />
                             </View>
                             <View style = {lstyles.timeSetCell}>
                                 <TimeSetCell 
                                     addr = {require('../assets/icons/moonsleep.png')} 
-                                    text = {'Sunrise'} />
+                                    text = {'Sunrise'} 
+                                    aniIn = {'fadeIn'}
+                                    aniOut = {'fadeOut'}
+                                    hour = {sunriseHour}
+                                    min = {sunriseMin}
+                                    onTimeChange = {handleSunriseChange}
+                                    />
                             </View>
                             <View style = {lstyles.timeSetCell}>
                                 <TimeSetCell 
                                     addr = {require('../assets/icons/timer.png')} 
-                                    text = {'Wake up'} />
+                                    text = {'Wake up'} 
+                                    aniIn = {'shake'}
+                                    aniOut = {'fadeOutRight'}
+                                    hour = {wakeupHour}
+                                    min = {wakeupMin}
+                                        onTimeChange = {handleWakeupChange}
+                                    />
                             </View>
                         </View>
 
@@ -167,18 +244,37 @@ const DaySetCell = ({DoW}) => {
     )
 }
 
-const TimeSetCell = ({addr, text}) => {
+const TimeSetCell = ({addr, text, aniIn, aniOut, hour = 11, min = 0, onTimeChange}) => {
     const [modalVisible, setModalVisible] = useState(false);
+
+    const formatTime = (h, m) => {
+        const displayHour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        const period = h === 0 || h < 12 ? 'AM' : 'PM';
+        const displayMin = String(m).padStart(2, '0');
+        return `${displayHour}:${displayMin} ${period}`;
+    };
+
+    const handleTimeConfirm = (newHour, newMin) => {
+        if (onTimeChange) {
+            onTimeChange(newHour, newMin);
+        }
+        setModalVisible(false);
+    };
+
     return (
         <TouchableOpacity style = {{left:15}}
-            onPress={() => setModalVisible(true)}
+            onPress={() => {
+                setModalVisible(true);
+            }}
         >
             <Icon12text11 addr = {addr} text = {text}/>
-            <Text style = {{...textStyles.semibold15, lineHeight:18}}>11:00 PM</Text>
+            <Text style = {{...textStyles.semibold15, lineHeight:18}}>{formatTime(hour, min)}</Text>
             <Modal
-                animationType='slide'
+                
+                animationIn={aniIn}
+                animationOut={aniOut}
                 transparent={true}
-                visible={modalVisible}
+                isVisible={modalVisible}
                 onRequestClose={() => setModalVisible(false)}
                 >
 
@@ -187,7 +283,13 @@ const TimeSetCell = ({addr, text}) => {
                         <TouchableWithoutFeedback>
                         <View>
                             <PickTimePanel 
-                                    onClose = {() =>this.setModalVisible()}
+                                    onClose = {(h, m) => {
+                                        handleTimeConfirm(h, m);
+                                    }}
+                                    initialHour={hour}
+                                    initialMin={min}
+                                    iconAddr={addr}
+                                    title={text}
                                 />
         
                         </View>
@@ -201,14 +303,25 @@ const TimeSetCell = ({addr, text}) => {
     )
 }
 
-const PickTimePanel = () => {
+const PickTimePanel = ({onClose, initialHour = 0, initialMin = 0, iconAddr, title}) => {
+  // Adjustable sizing for icon and title
+  const iconSize = 20;
+  const titleFontSize = 14;
+  
   const barWidth = 100
   const padding = 20
   const mainRadius = 40
   const buttonRadius = 20
   const bgcolor = '#0C112E'
-  const [Hour,setHour] = useState(0)
-  const [Min,setMin] = useState(0)
+  const [Hour, setHour] = useState(initialHour)
+  const [Min, setMin] = useState(initialMin)
+  
+  // Sync local state with props when they change
+  useEffect(() => {
+    setHour(initialHour);
+    setMin(initialMin);
+  }, [initialHour, initialMin]);
+  
   return (
     <View style = {{
             backgroundColor:bgcolor,
@@ -217,28 +330,25 @@ const PickTimePanel = () => {
             borderWidth:1,
             borderColor:'#353951'
             }}>
+        {/* Header with icon and title - adjust iconSize and titleFontSize above */}
+        {iconAddr && title && (
+          <View style={{flexDirection:'row', alignItems:'center', justifyContent:'center', marginBottom:16}}>
+            <Image source={iconAddr} style={{height:iconSize, width:iconSize, marginRight:8}}/>
+            <Text style={{...textStyles.semibold15, fontSize:titleFontSize, color:'white'}}>{title}</Text>
+          </View>
+        )}
+        
         <View style = {{alignItems:'center',justifyContent:'center',flexDirection:'row'}}>
           <Picker //Hour
             selectedValue={Hour}
             itemStyle={{width:barWidth,color:'white'}}
             onValueChange={(itemValue, itemIndex) =>
-              setHour(itemValue)
+              {
+                setHour(itemValue);
+              }
             }
             >
               
-            <Picker.Item label="00" value={1} />
-            <Picker.Item label="01" value={2} />
-            <Picker.Item label="02" value={3} />
-            <Picker.Item label="03" value={4} />
-            <Picker.Item label="04" value={5} />
-            <Picker.Item label="05" value={6} />
-            <Picker.Item label="06" value={6} />
-            <Picker.Item label="07" value={7} />
-            <Picker.Item label="08" value={8} />
-            <Picker.Item label="09" value={9} />
-            <Picker.Item label="10" value={10} />
-            <Picker.Item label="11" value={11} />
-            <Picker.Item label="12" value={12} />
             <Picker.Item label="13" value={13} />
             <Picker.Item label="14" value={14} />
             <Picker.Item label="15" value={15} />
@@ -250,7 +360,19 @@ const PickTimePanel = () => {
             <Picker.Item label="21" value={21} />
             <Picker.Item label="22" value={22} />
             <Picker.Item label="23" value={23} />
-            <Picker.Item label="24" value={24} />
+            <Picker.Item label="00" value={0} />
+            <Picker.Item label="01" value={1} />
+            <Picker.Item label="02" value={2} />
+            <Picker.Item label="03" value={3} />
+            <Picker.Item label="04" value={4} />
+            <Picker.Item label="05" value={5} />
+            <Picker.Item label="06" value={6} />
+            <Picker.Item label="07" value={7} />
+            <Picker.Item label="08" value={8} />
+            <Picker.Item label="09" value={9} />
+            <Picker.Item label="10" value={10} />
+            <Picker.Item label="11" value={11} />
+            <Picker.Item label="12" value={12} />
 
           </Picker>
           <Picker //Min
@@ -286,9 +408,9 @@ const PickTimePanel = () => {
                 alignItems:'center',
                 height: 2 * buttonRadius,
             }}
-            onPress={() => {this.props.onClose(false);}}
+            onPress={() => onClose(Hour, Min)}
             >
-            <Text style = {{color:bgcolor,fontSize:18,fontWeight:'bold'}}>Close</Text>
+            <Text style = {{...textStyles.medium16, color:'rgba(255,255,255,0.7)',fontSize:18,fontWeight:'bold',top:2,}}>CLOSE</Text>
         </TouchableOpacity> 
 
     </View>
