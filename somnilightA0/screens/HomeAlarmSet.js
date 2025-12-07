@@ -1,9 +1,10 @@
 import React , {useState} from 'react';
 import { 
     Image, ImageBackground,Text, View, StyleSheet, 
-    TouchableOpacity, TouchableHighlight, 
+    TouchableOpacity, TouchableHighlight,
+    Modal, TouchableWithoutFeedback, 
     } from 'react-native';
-
+import {Picker} from '@react-native-picker/picker';
 
 
 import { deviceHeight, deviceWidth } from '../App';
@@ -54,14 +55,20 @@ export function HomeAlarmSetScreen({navigation}) {
                                 flexDirection:'row',
                                 marginVertical:8,
                                 }}>
-                            <View style = {{...RoundBlueContainer,marginVertical:0,alignSelf:'stretch'}}>
-                                <TimeSetCell addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'} />
+                            <View style = {lstyles.timeSetCell}>
+                                <TimeSetCell 
+                                    addr = {require('../assets/icons/moonsleep.png')} 
+                                    text = {'Bedtime'} />
                             </View>
-                            <View style = {{...RoundBlueContainer,marginVertical:0,alignSelf:'stretch'}}>
-                                <TimeSetCell addr = {require('../assets/icons/moonsleep.png')} text = {'Sunrise'} />
+                            <View style = {lstyles.timeSetCell}>
+                                <TimeSetCell 
+                                    addr = {require('../assets/icons/moonsleep.png')} 
+                                    text = {'Sunrise'} />
                             </View>
-                            <View style = {{...RoundBlueContainer,marginVertical:0,alignSelf:'stretch'}}>
-                                <TimeSetCell addr = {require('../assets/icons/timer.png')} text = {'Wake up'} />
+                            <View style = {lstyles.timeSetCell}>
+                                <TimeSetCell 
+                                    addr = {require('../assets/icons/timer.png')} 
+                                    text = {'Wake up'} />
                             </View>
                         </View>
 
@@ -161,15 +168,133 @@ const DaySetCell = ({DoW}) => {
 }
 
 const TimeSetCell = ({addr, text}) => {
+    const [modalVisible, setModalVisible] = useState(false);
     return (
         <TouchableOpacity style = {{left:15}}
-
+            onPress={() => setModalVisible(true)}
         >
             <Icon12text11 addr = {addr} text = {text}/>
             <Text style = {{...textStyles.semibold15, lineHeight:18}}>11:00 PM</Text>
+            <Modal
+                animationType='slide'
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+                >
+
+                    <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+                    <View style = {{...containers.CenterAJ, backgroundColor:'transparant' }}>
+                        <TouchableWithoutFeedback>
+                        <View>
+                            <PickTimePanel 
+                                    onClose = {() =>this.setModalVisible()}
+                                />
+        
+                        </View>
+                        
+                        </TouchableWithoutFeedback>
+                    </View>
+                    </TouchableWithoutFeedback>
+                
+            </Modal>
         </TouchableOpacity>
     )
 }
+
+const PickTimePanel = () => {
+  const barWidth = 100
+  const padding = 20
+  const mainRadius = 40
+  const buttonRadius = 20
+  const bgcolor = '#0C112E'
+  const [Hour,setHour] = useState(0)
+  const [Min,setMin] = useState(0)
+  return (
+    <View style = {{
+            backgroundColor:bgcolor,
+            padding:padding,
+            borderRadius:mainRadius,
+            borderWidth:1,
+            borderColor:'#353951'
+            }}>
+        <View style = {{alignItems:'center',justifyContent:'center',flexDirection:'row'}}>
+          <Picker //Hour
+            selectedValue={Hour}
+            itemStyle={{width:barWidth,color:'white'}}
+            onValueChange={(itemValue, itemIndex) =>
+              setHour(itemValue)
+            }
+            >
+              
+            <Picker.Item label="00" value={1} />
+            <Picker.Item label="01" value={2} />
+            <Picker.Item label="02" value={3} />
+            <Picker.Item label="03" value={4} />
+            <Picker.Item label="04" value={5} />
+            <Picker.Item label="05" value={6} />
+            <Picker.Item label="06" value={6} />
+            <Picker.Item label="07" value={7} />
+            <Picker.Item label="08" value={8} />
+            <Picker.Item label="09" value={9} />
+            <Picker.Item label="10" value={10} />
+            <Picker.Item label="11" value={11} />
+            <Picker.Item label="12" value={12} />
+            <Picker.Item label="13" value={13} />
+            <Picker.Item label="14" value={14} />
+            <Picker.Item label="15" value={15} />
+            <Picker.Item label="16" value={16} />
+            <Picker.Item label="17" value={17} />
+            <Picker.Item label="18" value={18} />
+            <Picker.Item label="19" value={19} />
+            <Picker.Item label="20" value={20} />
+            <Picker.Item label="21" value={21} />
+            <Picker.Item label="22" value={22} />
+            <Picker.Item label="23" value={23} />
+            <Picker.Item label="24" value={24} />
+
+          </Picker>
+          <Picker //Min
+            selectedValue={Min}
+            itemStyle={{width:barWidth,color:'white'}}
+            onValueChange={(itemValue, itemIndex) =>
+              setMin(itemValue)
+            }
+            >
+              
+            <Picker.Item label="00" value={0} />
+            <Picker.Item label="05" value={5} />
+            <Picker.Item label="10" value={10} />
+            <Picker.Item label="15" value={15} />
+            <Picker.Item label="20" value={20} />
+            <Picker.Item label="25" value={25} />
+            <Picker.Item label="30" value={30} />
+            <Picker.Item label="35" value={35} />
+            <Picker.Item label="40" value={40} />
+            <Picker.Item label="45" value={45} />
+            <Picker.Item label="50" value={50} />
+            <Picker.Item label="55" value={55} />
+
+
+          </Picker>
+        </View>
+
+        <TouchableOpacity 
+            style = {{
+                backgroundColor:'rgba(255,255,255,0.15)',
+                borderRadius:buttonRadius,
+                justifyContent:'center',
+                alignItems:'center',
+                height: 2 * buttonRadius,
+            }}
+            onPress={() => {this.props.onClose(false);}}
+            >
+            <Text style = {{color:bgcolor,fontSize:18,fontWeight:'bold'}}>Close</Text>
+        </TouchableOpacity> 
+
+    </View>
+  )
+}
+
 
 const OtherSetCell = ({icon, title, value}) => {
     const src = icon;
@@ -205,3 +330,10 @@ const OtherSetCellIcon = ({src}) => {
     </View>
     )
 }
+
+
+const lstyles = StyleSheet.create ({
+    timeSetCell:{
+        ...RoundBlueContainer,marginVertical:0,alignSelf:'stretch'
+    },
+})
