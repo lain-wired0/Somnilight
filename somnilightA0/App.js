@@ -41,6 +41,7 @@ export default function App() {
          <Stacks.Screen name = 'RootTabs' component={RootTabs}/> 
          <Stacks.Screen name = 'HomeAlarmSet' component={HomeAlarmSetScreen}/>
       </Stacks.Navigator>
+      <StatusBar style ='light' />
     </NavigationContainer>
   );
 }

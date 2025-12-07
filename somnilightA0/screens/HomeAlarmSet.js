@@ -4,12 +4,25 @@ import {
     TouchableOpacity, TouchableHighlight, 
     } from 'react-native';
 
+
+
 import { deviceHeight, deviceWidth } from '../App';
 import { colors, containers, Icon12text11, textStyles } from '../styles';
 
-export function HomeAlarmSetScreen({navigation}) {
-    //infoManager
+const liveAlarmSettings = {
+    "bedtime": "23:00",
+    "sunrise_time": "15:00",
+    "wakeup_time": "15:02",
+    "days": ["Mon","Tue","Wed","Thu","Fri"],
+    "name": "Healthy sleep",
+    "preset_id": "Morning_1",
+    "repeat_interval_min": 5
+}
 
+
+
+export function HomeAlarmSetScreen({navigation}) {
+    const live = liveAlarmSettings
     return (
         <View style = {{flex:1,backgroundColor:'rgba(9,0,31,1)',alignItems:'center'}}>
             <ImageBackground source={require('../assets/general_images/alarmSetBG.png')}
@@ -18,13 +31,14 @@ export function HomeAlarmSetScreen({navigation}) {
                     <CusHeader navigation = {navigation} title={'Alarm Set'} previousPage={"Home"}/>
                     <View style={{marginTop:100, height:260,alignSelf:'stretch'}}/>
                     <View style={{alignSelf:'stretch',padding:8,height:400}}>
+                        
                         <View style = {{ //DaySetPanel
                                 ...RoundBlueContainer,
                                 flex:1,
                                 alignSelf:'stretch'
                                 }}>
                             <View style = {{flexDirection:'row',justifyContent:'space-evenly', alignItems:'center'}}>
-                                <DaySetCell DoW = {'Mo'}/>
+                                <DaySetCell DoW = {'Mo'} live = {live}/>
                                 <DaySetCell DoW = {'Tu'}/>
                                 <DaySetCell DoW = {'We'}/>
                                 <DaySetCell DoW = {'Th'}/>
@@ -50,9 +64,23 @@ export function HomeAlarmSetScreen({navigation}) {
                                 <TimeSetCell addr = {require('../assets/icons/timer.png')} text = {'Wake up'} />
                             </View>
                         </View>
-                        <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}/>
-                        <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}/>
-                        <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}/>
+
+                        <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}>
+                            <OtherSetCell   icon = {require('../assets/icons/AlarmSetName.png')} 
+                                            title = {'Alarm Name'} 
+                                            value = {live.name} />
+                        </View>
+
+                        <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}>
+                            <OtherSetCell   icon = {require('../assets/icons/AlarmSetPreset.png')} 
+                                            title = {'Preset'}
+                                            value = {live.preset_id} />
+                        </View>
+                        <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}>
+                            <OtherSetCell   icon = {require('../assets/icons/AlarmSetInterval.png')} 
+                                            title = {'Repeat Interval'}
+                                            value = {`${live.repeat_interval_min} min`} />
+                        </View>
                     </View>
             </ImageBackground>
             
@@ -106,12 +134,12 @@ function CusHeader({navigation, title}) {
 function CircularAlarmSetPanel(){
     return (
         <View>
-
         </View>
     )
 }
 
 const DaySetCell = ({DoW}) => {
+
     const [isActive, setIsActive] = useState(true)
     return (
         <TouchableHighlight
@@ -123,16 +151,19 @@ const DaySetCell = ({DoW}) => {
                 alignItems:'center',
                 justifyContent:'center',
             }}
-            onPress={() => setIsActive(!isActive)}
+            onPress={() => {
+                setIsActive(!isActive)
+            }}
         >
             <Text style={textStyles.reg11}>{DoW}</Text>
         </TouchableHighlight>
     )
 }
 
-function TimeSetCell({addr, text}){
+const TimeSetCell = ({addr, text}) => {
     return (
         <TouchableOpacity style = {{left:15}}
+
         >
             <Icon12text11 addr = {addr} text = {text}/>
             <Text style = {{...textStyles.semibold15, lineHeight:18}}>11:00 PM</Text>
@@ -140,10 +171,37 @@ function TimeSetCell({addr, text}){
     )
 }
 
-function OtherSetCell(){
+const OtherSetCell = ({icon, title, value}) => {
+    const src = icon;
     return (
-        <View>
-            
-        </View>
+        <TouchableOpacity style = {{padding:10,flexDirection: 'row',justifyContent:'flex-start'}}>
+            <View style = {{...containers.CenterAJ, flex:1}}>
+                <OtherSetCellIcon src = {src}/>
+            </View>
+            <View style = {{left:10, justifyContent:'center', flex:5}}>
+                <Text style = {{...textStyles.reg11,opacity:0.5}}>{title}</Text>
+                <Text style = {{...textStyles.medium16,lineHeight:18}}>{value}</Text>
+            </View>
+            <View style = {{...containers.CenterAJ, flex: 0.5}}>
+                <Image source={require('../assets/icons/arrow-right.png')} style={{height:16,width:16}} />
+            </View>
+        </TouchableOpacity>
+    )
+}
+
+const OtherSetCellIcon = ({src}) => {
+    const size = 40
+    const corner = 8
+    return(
+    <View style = {{
+        height:size,width:size,
+        borderRadius:corner,
+        borderWidth:1,
+        borderColor:'#4E5166',
+        alignItems:'center',
+        justifyContent:'center',
+    }}>
+        <Image source={src} style={{height:size,width:size,borderRadius:corner}}/>
+    </View>
     )
 }

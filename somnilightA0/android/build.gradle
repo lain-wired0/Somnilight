@@ -22,3 +22,8 @@ allprojects {
 
 apply plugin: "expo-root-project"
 apply plugin: "com.facebook.react.rootproject"
+
+dependencies {
+    //需要添加这一行
+    implementation fileTree(dir: '../../node_modules/@yz1311/react-native-wheel-picker/android/libs', include: ['*.aar'])
+}
