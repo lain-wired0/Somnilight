@@ -65,7 +65,6 @@ const HomeScreen = (pass = {navigation, route}) => {
         <ImageBackground 
             source = {require('../assets/general_images/hp_asm.png') } 
             style = {hp_style}>
-
             <Text style={{
                 ...textStyles.semibold15, 
                 fontSize: 20,
@@ -86,8 +85,8 @@ const HomeScreen = (pass = {navigation, route}) => {
             <TouchableOpacity   style = {{
                 left: 322, top:82, size:30, flex:1
                 }}>
-                    <MaterialCommunityIcons 
-                name = {'bell-outline'} size={30} color = {'white'} style={{flex:1}}
+                <MaterialCommunityIcons 
+                    name = {'bell-outline'} size={30} color = {'white'} style={{flex:1}}
                 />
             </TouchableOpacity>
             <View style = {{
@@ -96,13 +95,11 @@ const HomeScreen = (pass = {navigation, route}) => {
                 <HomeConfigSlide pass = {pass}/>
             </View>
             
-
         </ImageBackground>
     </View>
 
     )
-   
-    
+
 }
 
 const HomeConfigSlide = ({pass}) => {
@@ -122,7 +119,6 @@ const HomeConfigSlide = ({pass}) => {
             
             <BottomSheet
                 ref={bottomSheetRef}
-                
                 snapPoints={["40%","90%"]}
                 onChange={handleSheetChanges}
                 backgroundComponent = { BlurSlideBG }
@@ -214,8 +210,6 @@ async function initPower() {
 
     return (data.power == 'on' ? true :false)
 }
-
-
 
 async function setPower(isOn) {
     const res = await fetch('http://somnilight.online:1880/pillow/power',{

@@ -4,26 +4,27 @@ import {
     TouchableOpacity, TouchableHighlight,
     TouchableWithoutFeedback, Alert,
     } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Picker} from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
 import { deviceHeight, deviceWidth } from '../App';
 import { colors, containers, Icon12text11, textStyles } from '../styles';
 import CircularAlarmSetPanel from './CircularAlarmSetPanel';
+import presetsData from '../presets.json';
 
-const liveAlarmSettings = {
-    "bedtime": "23:00",
-    "sunrise_time": "15:00",
-    "wakeup_time": "15:02",
-    "days": ["Mon","Tue","Wed","Thu","Fri"],
-    "name": "Healthy sleep",
-    "preset_id": "Morning_1",
-    "repeat_interval_min": 5
-}
+const PRESET_ICONS = {
+    preJade: require('../assets/icons/preJade.png'),
+    preCloud: require('../assets/icons/preCloud.png'),
+    preMist: require('../assets/icons/preMist.png'),
+};
 
-
+const PRESET_ICONS_BY_NAME = {
+    Morning_1: PRESET_ICONS.preJade,
+    Morning_2: PRESET_ICONS.preCloud,
+    Sleep: PRESET_ICONS.preMist,
+};
 
 export function HomeAlarmSetScreen({navigation}) {
-    const live = liveAlarmSettings
     const [bedtimeHour, setBedtimeHour] = useState(23);
     const [bedtimeMin, setBedtimeMin] = useState(0);
     const bedtimeRef = React.useRef({ h: 23, m: 0 }); // Track latest bedtime
@@ -31,11 +32,184 @@ export function HomeAlarmSetScreen({navigation}) {
     const [sunriseMin, setSunriseMin] = useState(30);
     const [wakeupHour, setWakeupHour] = useState(7);
     const [wakeupMin, setWakeupMin] = useState(0);
+    const presetOptionsRaw = presetsData?.presets || presetsData || [];
+    const presetOptions = Array.isArray(presetOptionsRaw)
+        ? presetOptionsRaw
+            .map((item) => {
+                if (typeof item === 'string') return { name: item };
+                if (item && typeof item === 'object') return { name: item.name, icon: item.icon };
+                return null;
+            })
+            .filter((p) => p && p.name)
+        : [];
+    const presetNames = presetOptions.map((p) => p.name);
+    const initialPreset = presetNames[0] || 'Morning_1';
+    const [presetId, setPresetId] = useState(initialPreset);
+    const [activeDays, setActiveDays] = useState(["Mon","Tue","Wed","Thu","Fri"]);
+    const [alarmName, setAlarmName] = useState('Healthy sleep');
     const [sunriseOffsetMin, setSunriseOffsetMin] = useState(30); // difference between wakeup and sunrise in minutes
     const sunriseOffsetRef = React.useRef(30); // Keep ref in sync with state
         const wakeupRef = React.useRef({ h: 7, m: 0 }); // Track latest wakeup time
-    const [repeatIntervalMin, setRepeatIntervalMin] = useState(live.repeat_interval_min || 5); // 0 means never
+    const [repeatIntervalMin, setRepeatIntervalMin] = useState(5); // 0 means never
     const shortSleepAlertShown = React.useRef(false); // Track if alert has been shown this session
+
+    // Move alarm configs state to parent (HomeAlarmSetScreen) so it's shared
+    // Store alarm configurations in state and AsyncStorage (local cache)
+    // NOTE: AsyncStorage is a LOCAL CACHE LAYER. In the future, backend server 
+    // integration will be added to sync these configs to the cloud.
+    // Data flow: UI → State → AsyncStorage (cache) → [Future: Backend API]
+    const defaultAlarmConfigs = {
+        'Healthy sleep': {
+            bedtime: '23:00',
+            sunrise_time: '06:30',
+            wakeup_time: '07:00',
+            days: ['Mon','Tue','Wed','Thu','Fri'],
+            preset_id: 'Morning_1',
+            repeat_interval_min: 5,
+        },
+        'Quick nap': {
+            bedtime: '14:00',
+            sunrise_time: '15:30',
+            wakeup_time: '16:00',
+            days: ['Mon','Tue','Wed','Thu','Fri'],
+            preset_id: 'Sleep',
+            repeat_interval_min: 0,
+        },
+        'Weekend mode': {
+            bedtime: '01:00',
+            sunrise_time: '09:30',
+            wakeup_time: '10:00',
+            days: ['Sat','Sun'],
+            preset_id: 'Morning_2',
+            repeat_interval_min: 10,
+        },
+    };
+    
+    const [alarmConfigs, setAlarmConfigs] = useState(defaultAlarmConfigs);
+    const [configsHydrated, setConfigsHydrated] = useState(false); // prevent overwriting storage before load
+    const STORAGE_KEY = 'alarmConfigs';
+
+    // Helper to format time as HH:MM
+    const formatTimeString = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+    // Computed alarm configuration object for server/local storage
+    const alarmConfig = React.useMemo(() => ({
+        name: alarmName,
+        bedtime: formatTimeString(bedtimeHour, bedtimeMin),
+        sunrise_time: formatTimeString(sunriseHour, sunriseMin),
+        wakeup_time: formatTimeString(wakeupHour, wakeupMin),
+        days: activeDays,
+        preset_id: presetId,
+        repeat_interval_min: repeatIntervalMin,
+    }), [alarmName, bedtimeHour, bedtimeMin, sunriseHour, sunriseMin, wakeupHour, wakeupMin, activeDays, presetId, repeatIntervalMin]);
+
+    // Log alarm config changes for debugging
+    React.useEffect(() => {
+        console.log('Alarm Config:', JSON.stringify(alarmConfig, null, 2));
+    }, [alarmConfig]);
+
+    // Load alarm configs from AsyncStorage (local cache) on mount
+    // TODO: On app startup, sync with backend server to get latest configs
+    React.useEffect(() => {
+        const loadAlarmConfigs = async () => {
+            try {
+                const stored = await AsyncStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    setAlarmConfigs(parsed);
+                    setConfigsHydrated(true);
+                    console.log('Loaded alarm configs from local storage:', parsed);
+                    
+                    // Now load the last active alarm after configs are loaded
+                    const lastActive = await AsyncStorage.getItem('lastActiveAlarmSet');
+                    if (lastActive && parsed[lastActive]) {
+                        loadAlarm(lastActive, parsed[lastActive]);
+                    }
+                } else {
+                    // Save default configs if none exist
+                    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(defaultAlarmConfigs));
+                    setConfigsHydrated(true);
+                    console.log('Saved default alarm configs to local storage');
+                }
+            } catch (error) {
+                console.error('Error loading alarm configs from AsyncStorage:', error);
+            }
+        };
+        
+        loadAlarmConfigs();
+    }, []);
+
+    // Save alarmConfigs to AsyncStorage (local cache) whenever they change
+    // TODO: Add debouncing and call backend API to sync changes to server
+    React.useEffect(() => {
+        const saveAlarmConfigs = async () => {
+            if (!configsHydrated) return; // avoid overwriting storage before initial load
+            try {
+                await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(alarmConfigs));
+                console.log('Saved alarm configs to local storage');
+                // TODO: POST to backend API at http://somnilight.online:1880/alarms/sync
+            } catch (error) {
+                console.error('Error saving alarm configs to AsyncStorage:', error);
+            }
+        };
+        
+        saveAlarmConfigs();
+    }, [alarmConfigs, configsHydrated]);
+
+    // Helper function to load alarm configuration
+    const loadAlarm = (name, config) => {
+        const parseBedtime = config.bedtime.split(':').map(Number);
+        const parseSunrise = config.sunrise_time.split(':').map(Number);
+        const parseWakeup = config.wakeup_time.split(':').map(Number);
+        
+        setAlarmName(name);
+        setBedtimeHour(parseBedtime[0]);
+        setBedtimeMin(parseBedtime[1]);
+        setSunriseHour(parseSunrise[0]);
+        setSunriseMin(parseSunrise[1]);
+        setWakeupHour(parseWakeup[0]);
+        setWakeupMin(parseWakeup[1]);
+        setActiveDays(config.days);
+        setPresetId(config.preset_id);
+        setRepeatIntervalMin(config.repeat_interval_min);
+        
+        // Recalculate sunrise offset
+        const wakeTotal = parseWakeup[0] * 60 + parseWakeup[1];
+        const sunriseTotal = parseSunrise[0] * 60 + parseSunrise[1];
+        const offset = ((wakeTotal - sunriseTotal + 1440) % 1440);
+        setSunriseOffsetMin(offset);
+        sunriseOffsetRef.current = offset;
+        
+        // Save the active alarm name for next app launch
+        AsyncStorage.setItem('lastActiveAlarmSet', name).catch(err => 
+            console.error('Error saving last active alarm:', err)
+        );
+        
+        console.log('Loaded alarm configuration:', name, config);
+    };
+
+    // Load the last active alarm set from AsyncStorage on mount
+    React.useEffect(() => {
+        const loadLastActiveAlarm = async () => {
+            try {
+                const lastActive = await AsyncStorage.getItem('lastActiveAlarmSet');
+                const allConfigs = await AsyncStorage.getItem(STORAGE_KEY);
+                
+                if (lastActive && allConfigs) {
+                    const configs = JSON.parse(allConfigs);
+                    const config = configs[lastActive];
+                    
+                    if (config) {
+                        loadAlarm(lastActive, config);
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading last active alarm:', error);
+            }
+        };
+        
+        loadLastActiveAlarm();
+    }, []);
 
     // Sync ref with state
     React.useEffect(() => {
@@ -210,21 +384,7 @@ export function HomeAlarmSetScreen({navigation}) {
                     </View>
                     <View style={{alignSelf:'stretch',padding:8,height:400}}>
                         
-                        <View style = {{ //DaySetPanel
-                                ...RoundBlueContainer,
-                                flex:1,
-                                alignSelf:'stretch'
-                                }}>
-                            <View style = {{flexDirection:'row',justifyContent:'space-evenly', alignItems:'center'}}>
-                                <DaySetCell DoW = {'Mo'} live = {live}/>
-                                <DaySetCell DoW = {'Tu'}/>
-                                <DaySetCell DoW = {'We'}/>
-                                <DaySetCell DoW = {'Th'}/>
-                                <DaySetCell DoW = {'Fi'}/>
-                                <DaySetCell DoW = {'Sa'}/>
-                                <DaySetCell DoW = {'Su'}/>
-                            </View>
-                        </View>
+                        <DaySetPanel activeDays={activeDays} onDaysChange={setActiveDays} />
 
                         <View style = {{//TimeSetPanel
                                 flex:1,
@@ -268,15 +428,26 @@ export function HomeAlarmSetScreen({navigation}) {
                         </View>
 
                         <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}>
-                            <OtherSetCell   icon = {require('../assets/icons/AlarmSetName.png')} 
-                                            title = {'Alarm Name'} 
-                                            value = {live.name} />
+                            <AlarmNameCell
+                                icon={require('../assets/icons/AlarmSetName.png')}
+                                title={'Alarm Name'}
+                                value={alarmName}
+                                alarmConfig={alarmConfig}
+                                alarmConfigs={alarmConfigs}
+                                onAlarmConfigsChange={setAlarmConfigs}
+                                onRename={(newName) => setAlarmName(newName)}
+                                onLoadAlarm={loadAlarm}
+                            />
                         </View>
 
                         <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}>
-                            <OtherSetCell   icon = {require('../assets/icons/AlarmSetPreset.png')} 
-                                            title = {'Preset'}
-                                            value = {live.preset_id} />
+                            <PresetCell 
+                                baseIcon={require('../assets/icons/AlarmSetPreset.png')} 
+                                title={'Preset'}
+                                value={presetId || (presetOptions[0] || '')}
+                                options={presetOptions}
+                                onSelect={(val) => setPresetId(val)}
+                            />
                         </View>
                         <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}>
                             <RepeatIntervalCell 
@@ -302,6 +473,47 @@ const RoundBlueContainer = StyleSheet.create({
     borderWidth:0.5,
     borderColor:"#222754"
 })
+
+const DaySetPanel = ({ activeDays = [], onDaysChange }) => {
+    const dayMap = [
+        { short: 'Mo', full: 'Mon' },
+        { short: 'Tu', full: 'Tue' },
+        { short: 'We', full: 'Wed' },
+        { short: 'Th', full: 'Thu' },
+        { short: 'Fi', full: 'Fri' },
+        { short: 'Sa', full: 'Sat' },
+        { short: 'Su', full: 'Sun' },
+    ];
+
+    const handleDayToggle = (fullDay) => {
+        if (!onDaysChange) return;
+        const isActive = activeDays.includes(fullDay);
+        if (isActive) {
+            onDaysChange(activeDays.filter(d => d !== fullDay));
+        } else {
+            onDaysChange([...activeDays, fullDay]);
+        }
+    };
+
+    return (
+        <View style = {{
+                ...RoundBlueContainer,
+                flex:1,
+                alignSelf:'stretch'
+                }}>
+            <View style = {{flexDirection:'row',justifyContent:'space-evenly', alignItems:'center'}}>
+                {dayMap.map(({ short, full }) => (
+                    <DaySetCell
+                        key={full}
+                        DoW={short}
+                        isActive={activeDays.includes(full)}
+                        onToggle={() => handleDayToggle(full)}
+                    />
+                ))}
+            </View>
+        </View>
+    );
+};
 
 function CusHeader({navigation, title}) {
     return(
@@ -335,6 +547,149 @@ function CusHeader({navigation, title}) {
         </View>
     )
 }
+
+const PresetPickerPanel = ({ onClose, options = [], initialValue = '' }) => {
+    const titleFontSize = 14;
+    const barWidth = 200;
+    const padding = 20;
+    const mainRadius = 40;
+    const buttonRadius = 20;
+    const bgcolor = '#0C112E';
+    const optionNames = Array.isArray(options)
+        ? options
+            .map((item) => (typeof item === 'string' ? item : item?.name))
+            .filter(Boolean)
+        : [];
+    const hasOptions = optionNames.length > 0;
+    const fallbackLabel = 'No presets';
+    const initialSafeValue = hasOptions
+        ? (optionNames.includes(initialValue) ? initialValue : optionNames[0])
+        : fallbackLabel;
+    const [val, setVal] = useState(initialSafeValue);
+
+    useEffect(() => {
+        const names = Array.isArray(options)
+            ? options
+                .map((item) => (typeof item === 'string' ? item : item?.name))
+                .filter(Boolean)
+            : [];
+        const nextHasOptions = names.length > 0;
+        if (!nextHasOptions) {
+            setVal(fallbackLabel);
+            return;
+        }
+        const nextValue = names.includes(initialValue) ? initialValue : names[0];
+        setVal(nextValue);
+    }, [initialValue, options]);
+
+    const renderOptions = hasOptions ? optionNames : [fallbackLabel];
+
+    return (
+        <View style = {{
+                        backgroundColor:bgcolor,
+                        padding:padding,
+                        borderRadius:mainRadius,
+                        borderWidth:1,
+                        borderColor:'#353951'
+                        }}>
+                <View style={{alignItems:'center', justifyContent:'center', marginBottom:16}}>
+                    <Text style={{...textStyles.semibold15, fontSize:titleFontSize, color:'white'}}>Select Preset</Text>
+                </View>
+
+                <View style = {{alignItems:'center',justifyContent:'center',flexDirection:'row'}}>
+                    <Picker
+                        selectedValue={val}
+                        itemStyle={{width:barWidth,color:'white'}}
+                        onValueChange={(itemValue) => {
+                                setVal(itemValue);
+                        }}
+                        enabled={hasOptions}
+                    >
+                        {renderOptions.map((preset) => (
+                            <Picker.Item key={preset} label={preset} value={preset} />
+                        ))}
+                    </Picker>
+                </View>
+
+                <TouchableOpacity 
+                        style = {{
+                                backgroundColor:'rgba(255,255,255,0.15)',
+                                borderRadius:buttonRadius,
+                                justifyContent:'center',
+                                alignItems:'center',
+                                height: 2 * buttonRadius,
+                        }}
+                        onPress={() => onClose(val)}
+                        >
+                        <Text style = {{...textStyles.medium16, color:'rgba(255,255,255,0.7)',fontSize:18,fontWeight:'bold',top:2,}}>SET</Text>
+                </TouchableOpacity> 
+
+        </View>
+    )
+}
+
+const PresetCell = ({baseIcon, title, value, options = [], onSelect}) => {
+    const [modalVisible, setModalVisible] = useState(false);
+    const optionNames = Array.isArray(options)
+        ? options
+            .map((item) => (typeof item === 'string' ? item : item?.name))
+            .filter(Boolean)
+        : [];
+    const hasOptions = optionNames.length > 0;
+    const displayValue = hasOptions ? (value || optionNames[0]) : 'No presets';
+
+    const selectedIcon = (() => {
+        if (!value) return null;
+        if (PRESET_ICONS_BY_NAME[value]) return PRESET_ICONS_BY_NAME[value];
+        const match = Array.isArray(options)
+            ? options.find((item) => (typeof item === 'string' ? item === value : item?.name === value))
+            : null;
+        if (match?.icon && PRESET_ICONS[match.icon]) return PRESET_ICONS[match.icon];
+        return null;
+    })();
+
+    const cellIcon = selectedIcon || baseIcon;
+
+    return (
+        <TouchableOpacity style = {{padding:10,flexDirection: 'row',justifyContent:'flex-start'}} onPress={() => hasOptions && setModalVisible(true)} disabled={!hasOptions}>
+            <View style = {{...containers.CenterAJ, flex:1}}>
+                <OtherSetCellIcon src = {cellIcon}/>
+            </View>
+            <View style = {{left:10, justifyContent:'center', flex:5}}>
+                <Text style = {{...textStyles.reg11,opacity:0.5}}>{title}</Text>
+                <Text style = {{...textStyles.medium16,lineHeight:18, opacity: hasOptions ? 1 : 0.5}}>{displayValue}</Text>
+            </View>
+            <View style = {{...containers.CenterAJ, flex: 0.5}}>
+                <Image source={require('../assets/icons/arrow-right.png')} style={{height:16,width:16, opacity: hasOptions ? 1 : 0.4}} />
+            </View>
+
+            <Modal
+                isVisible={modalVisible}
+                transparent={true}
+                onRequestClose={() => setModalVisible(false)}
+                animationIn={'fadeInUp'}
+                animationOut={'fadeOutDown'}
+            >
+                <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+                    <View style = {{...containers.CenterAJ, backgroundColor:'rgba(0,0,0,0.4)'}}>
+                        <TouchableWithoutFeedback>
+                            <View>
+                                <PresetPickerPanel
+                                    options={options}
+                                    initialValue={value}
+                                    onClose={(val) => {
+                                        if (onSelect) onSelect(val);
+                                        setModalVisible(false);
+                                    }}
+                                />
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+        </TouchableOpacity>
+    );
+};
 
 const RepeatIntervalCell = ({icon, title, value, onSelect}) => {
     const [modalVisible, setModalVisible] = useState(false);
@@ -382,9 +737,7 @@ const RepeatIntervalCell = ({icon, title, value, onSelect}) => {
 };
 
 
-const DaySetCell = ({DoW}) => {
-
-    const [isActive, setIsActive] = useState(true)
+const DaySetCell = ({DoW, isActive = false, onToggle}) => {
     return (
         <TouchableHighlight
             style = {{
@@ -395,9 +748,7 @@ const DaySetCell = ({DoW}) => {
                 alignItems:'center',
                 justifyContent:'center',
             }}
-            onPress={() => {
-                setIsActive(!isActive)
-            }}
+            onPress={onToggle}
         >
             <Text style={textStyles.reg11}>{DoW}</Text>
         </TouchableHighlight>
@@ -508,7 +859,6 @@ const PickTimePanel = ({onClose, initialHour = 0, initialMin = 0, iconAddr, titl
               }
             }
             >
-              
             <Picker.Item label="13" value={13} />
             <Picker.Item label="14" value={14} />
             <Picker.Item label="15" value={15} />
@@ -634,6 +984,273 @@ const RepeatIntervalPanel = ({ onClose, initialValue = 0 }) => {
         </View>
     )
 }
+
+const AlarmNameCell = ({icon, title, value, alarmConfig, alarmConfigs, onAlarmConfigsChange, onRename, onLoadAlarm}) => {
+    const [modalVisible, setModalVisible] = useState(false);
+    const [selectedAlarm, setSelectedAlarm] = useState(value);
+    
+    // Use parent's alarm configs instead of local state
+    // This ensures we always read the single source of truth
+    
+    // Get list of alarm names from configurations
+    const savedAlarms = Object.keys(alarmConfigs);
+
+    const handleDelete = () => {
+        if (savedAlarms.length <= 1) {
+            Alert.alert('Cannot Delete', 'You must have at least one alarm set.');
+            return;
+        }
+        Alert.alert(
+            'Delete Alarm',
+            `Are you sure you want to delete "${selectedAlarm}"?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => {
+                        console.log('Deleting alarm:', selectedAlarm);
+                        const updatedConfigs = {...alarmConfigs};
+                        delete updatedConfigs[selectedAlarm];
+                            onAlarmConfigsChange(updatedConfigs); // Auto-syncs to local storage via useEffect in parent
+                        const remainingAlarms = Object.keys(updatedConfigs);
+                        setSelectedAlarm(remainingAlarms[0]);
+                        // TODO: DELETE to backend API endpoint
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleRename = () => {
+        Alert.prompt(
+            'Rename Alarm',
+            'Enter new name:',
+            (text) => {
+                if (text && text.trim() && text !== selectedAlarm) {
+                    const newName = text.trim();
+                    if (savedAlarms.includes(newName)) {
+                        Alert.alert('Error', 'An alarm with this name already exists.');
+                        return;
+                    }
+                    const updatedConfigs = {...alarmConfigs};
+                    updatedConfigs[newName] = updatedConfigs[selectedAlarm];
+                    delete updatedConfigs[selectedAlarm];
+                    onAlarmConfigsChange(updatedConfigs);
+                    setSelectedAlarm(newName);
+                    onRename(newName);
+                    console.log('Renamed alarm to:', newName);
+                }
+            },
+            'plain-text',
+            selectedAlarm
+        );
+    };
+
+    const handleSave = () => {
+        console.log('Saving current config to alarm:', selectedAlarm);
+        console.log('Alarm config:', JSON.stringify(alarmConfig, null, 2));
+        
+        // Save the current alarmConfig to this alarm name
+        const updatedConfigs = {...alarmConfigs};
+        updatedConfigs[selectedAlarm] = {
+            bedtime: alarmConfig.bedtime,
+            sunrise_time: alarmConfig.sunrise_time,
+            wakeup_time: alarmConfig.wakeup_time,
+            days: [...alarmConfig.days],
+            preset_id: alarmConfig.preset_id,
+            repeat_interval_min: alarmConfig.repeat_interval_min,
+        };
+        onAlarmConfigsChange(updatedConfigs); // Auto-syncs to local storage via useEffect in parent
+        
+        Alert.alert('Saved', `Current settings saved to "${selectedAlarm}"`);
+        onRename(selectedAlarm);
+        setModalVisible(false);
+        // TODO: POST/PUT to backend API to save alarm configuration
+    };
+
+    const handleNew = () => {
+        Alert.prompt(
+            'New Alarm',
+            'Enter name for new alarm:',
+            (text) => {
+                if (text && text.trim()) {
+                    const newName = text.trim();
+                    if (savedAlarms.includes(newName)) {
+                        Alert.alert('Error', 'An alarm with this name already exists.');
+                        return;
+                    }
+                    
+                    // Create new alarm with current config
+                    const updatedConfigs = {...alarmConfigs};
+                    updatedConfigs[newName] = {
+                        bedtime: alarmConfig.bedtime,
+                        sunrise_time: alarmConfig.sunrise_time,
+                        wakeup_time: alarmConfig.wakeup_time,
+                        days: [...alarmConfig.days],
+                        preset_id: alarmConfig.preset_id,
+                        repeat_interval_min: alarmConfig.repeat_interval_min,
+                    };
+                        onAlarmConfigsChange(updatedConfigs); // Auto-syncs to local storage via useEffect in parent
+                    setSelectedAlarm(newName);
+                    onRename(newName);
+                    console.log('Created new alarm:', newName);
+                    // TODO: POST to backend API to create new alarm
+                }
+            },
+            'plain-text',
+            'New Alarm'
+        );
+    };
+
+    const handleSet = () => {
+        console.log('Loading alarm set:', selectedAlarm);
+        const savedConfig = alarmConfigs[selectedAlarm];
+        
+        if (savedConfig && onLoadAlarm) {
+            console.log('Restoring config:', savedConfig);
+            onLoadAlarm(selectedAlarm, savedConfig);
+            Alert.alert('Loaded', `"${selectedAlarm}" settings have been loaded.`);
+        } else {
+            Alert.alert('Error', 'No saved configuration found for this alarm.');
+        }
+        setModalVisible(false);
+    };
+
+    useEffect(() => {
+        setSelectedAlarm(value);
+    }, [value]);
+
+    return (
+        <TouchableOpacity style = {{padding:10,flexDirection: 'row',justifyContent:'flex-start'}} onPress={() => setModalVisible(true)}>
+            <View style = {{...containers.CenterAJ, flex:1}}>
+                <OtherSetCellIcon src = {icon}/>
+            </View>
+            <View style = {{left:10, justifyContent:'center', flex:5}}>
+                <Text style = {{...textStyles.reg11,opacity:0.5}}>{title}</Text>
+                <Text style = {{...textStyles.medium16,lineHeight:18}}>{value}</Text>
+            </View>
+            <View style = {{...containers.CenterAJ, flex: 0.5}}>
+                <Image source={require('../assets/icons/arrow-right.png')} style={{height:16,width:16}} />
+            </View>
+
+            <Modal
+                isVisible={modalVisible}
+                transparent={true}
+                onRequestClose={() => setModalVisible(false)}
+                animationIn={'fadeInUp'}
+                animationOut={'fadeOutDown'}
+            >
+                <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+                    <View style = {{...containers.CenterAJ, backgroundColor:'rgba(0,0,0,0.4)'}}>
+                        <TouchableWithoutFeedback>
+                            <View style={{
+                                backgroundColor:'#0C112E',
+                                padding:20,
+                                borderRadius:40,
+                                borderWidth:1,
+                                borderColor:'#353951',
+                                width:320
+                            }}>
+                                <Text style={{...textStyles.semibold15, fontSize:14, color:'white', textAlign:'center', marginBottom:16}}>Select Alarm Set</Text>
+                                
+                                {/* Picker with Delete and Rename buttons */}
+                                <View style={{flexDirection:'row', alignItems:'center', justifyContent:'center', marginBottom:20}}>
+                                    {/* Delete button */}
+                                    <TouchableOpacity 
+                                        onPress={handleDelete}
+                                        style={{
+                                            width:40,
+                                            height:40,
+                                            borderRadius:12,
+                                            backgroundColor:'rgba(255,50,50,0.2)',
+                                            alignItems:'center',
+                                            justifyContent:'center',
+                                            marginRight:10
+                                        }}
+                                    >
+                                        <Text style={{fontSize:20, color:'#FF6B6B'}}>🗑️</Text>
+                                    </TouchableOpacity>
+
+                                    {/* Picker */}
+                                    <View style={{flex:1}}>
+                                        <Picker
+                                            selectedValue={selectedAlarm}
+                                            itemStyle={{width:180,color:'white'}}
+                                            onValueChange={(itemValue) => setSelectedAlarm(itemValue)}
+                                        >
+                                            {savedAlarms.map((alarm) => (
+                                                <Picker.Item key={alarm} label={alarm} value={alarm} />
+                                            ))}
+                                        </Picker>
+                                    </View>
+
+                                    {/* Rename button */}
+                                    <TouchableOpacity 
+                                        onPress={handleRename}
+                                        style={{
+                                            width:40,
+                                            height:40,
+                                            borderRadius:12,
+                                            backgroundColor:'rgba(255,255,255,0.15)',
+                                            alignItems:'center',
+                                            justifyContent:'center',
+                                            marginLeft:10
+                                        }}
+                                    >
+                                        <Text style={{fontSize:18, color:'white'}}>✏️</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {/* Action Buttons Row */}
+                                <View style={{flexDirection:'row', justifyContent:'space-between'}}>
+                                    <TouchableOpacity
+                                        style={{
+                                            flex:1,
+                                            backgroundColor:'#7A5AF8',
+                                            borderRadius:20,
+                                            paddingVertical:12,
+                                            marginRight:5
+                                        }}
+                                        onPress={handleSave}
+                                    >
+                                        <Text style={{...textStyles.medium16, color:'white', textAlign:'center', fontWeight:'bold', fontSize:14}}>SAVE</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={{
+                                            flex:1,
+                                            backgroundColor:'rgba(255,255,255,0.15)',
+                                            borderRadius:20,
+                                            paddingVertical:12,
+                                            marginHorizontal:5
+                                        }}
+                                        onPress={handleNew}
+                                    >
+                                        <Text style={{...textStyles.medium16, color:'white', textAlign:'center', fontWeight:'bold', fontSize:14}}>NEW</Text>
+                                    </TouchableOpacity>
+
+                                    <TouchableOpacity
+                                        style={{
+                                            flex:1,
+                                            backgroundColor:'rgba(255,255,255,0.15)',
+                                            borderRadius:20,
+                                            paddingVertical:12,
+                                            marginLeft:5
+                                        }}
+                                        onPress={handleSet}
+                                    >
+                                        <Text style={{...textStyles.medium16, color:'white', textAlign:'center', fontWeight:'bold', fontSize:14}}>SET</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+        </TouchableOpacity>
+    );
+};
 
 
 const OtherSetCell = ({icon, title, value}) => {
