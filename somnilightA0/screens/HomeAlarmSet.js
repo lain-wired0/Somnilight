@@ -6,10 +6,9 @@ import {
     } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
-
-
 import { deviceHeight, deviceWidth } from '../App';
 import { colors, containers, Icon12text11, textStyles } from '../styles';
+import CircularAlarmSetPanel from './CircularAlarmSetPanel';
 
 const liveAlarmSettings = {
     "bedtime": "23:00",
@@ -27,12 +26,31 @@ export function HomeAlarmSetScreen({navigation}) {
     const live = liveAlarmSettings
     const [bedtimeHour, setBedtimeHour] = useState(23);
     const [bedtimeMin, setBedtimeMin] = useState(0);
+    const bedtimeRef = React.useRef({ h: 23, m: 0 }); // Track latest bedtime
     const [sunriseHour, setSunriseHour] = useState(6);
     const [sunriseMin, setSunriseMin] = useState(30);
     const [wakeupHour, setWakeupHour] = useState(7);
     const [wakeupMin, setWakeupMin] = useState(0);
     const [sunriseOffsetMin, setSunriseOffsetMin] = useState(30); // difference between wakeup and sunrise in minutes
+    const sunriseOffsetRef = React.useRef(30); // Keep ref in sync with state
+        const wakeupRef = React.useRef({ h: 7, m: 0 }); // Track latest wakeup time
     const [repeatIntervalMin, setRepeatIntervalMin] = useState(live.repeat_interval_min || 5); // 0 means never
+    const shortSleepAlertShown = React.useRef(false); // Track if alert has been shown this session
+
+    // Sync ref with state
+    React.useEffect(() => {
+        sunriseOffsetRef.current = sunriseOffsetMin;
+    }, [sunriseOffsetMin]);
+
+    // Sync wakeup ref with state
+    React.useEffect(() => {
+        wakeupRef.current = { h: wakeupHour, m: wakeupMin };
+    }, [wakeupHour, wakeupMin]);
+
+    // Sync bedtime ref with state
+    React.useEffect(() => {
+        bedtimeRef.current = { h: bedtimeHour, m: bedtimeMin };
+    }, [bedtimeHour, bedtimeMin]);
 
     // Helper function to check if a time is between two times (handling midnight wrap)
     const isTimeBetween = (checkHour, checkMin, startHour, startMin, endHour, endMin) => {
@@ -54,49 +72,121 @@ export function HomeAlarmSetScreen({navigation}) {
         return { h: Math.floor(total / 60), m: total % 60 };
     };
 
+    const addMinutes = (hour, min, delta) => {
+        const total = (hour * 60 + min + delta + 1440) % 1440;
+        return { h: Math.floor(total / 60), m: total % 60 };
+    };
+
     const minutesDiff = (h1, m1, h2, m2) => {
         // difference from (h1:m1) to (h2:m2) in minutes, wrapping 24h
         return ((h2 * 60 + m2) - (h1 * 60 + m1) + 1440) % 1440;
     };
-
     const checkShortSleep = (bedH, bedM, wakeH, wakeM) => {
         const diff = minutesDiff(bedH, bedM, wakeH, wakeM);
-        if (diff > 0 && diff < 240) {
-            Alert.alert("You're working so hard... T.T", "We noticed that tonight you are sleeping for less than 4 hours... \nMay tomorrow bring you peace from the hustle and bustle.");
+        if (diff > 0 && diff < 240 && !shortSleepAlertShown.current) {
+            shortSleepAlertShown.current = true;
+            Alert.alert("You're working so hard... T.T", "We noticed that tonight you are sleeping for less than 4 hours... \nMay tomorrow bring you peace from the hustle and bustle.")
         }
-    };
+    };  
+    
 
     // Validate and constrain sunrise time
     const handleSunriseChange = (hour, min) => {
-        if (isTimeBetween(hour, min, bedtimeHour, bedtimeMin, wakeupHour, wakeupMin)) {
+        const currentWakeup = wakeupRef.current;
+        const currentBedtime = bedtimeRef.current;
+        if (!isTimeBetween(hour, min, currentBedtime.h, currentBedtime.m, currentWakeup.h, currentWakeup.m)) {
+            return; // Out of valid sleep window
+        }
+        
+        const offset = minutesDiff(hour, min, currentWakeup.h, currentWakeup.m);
+        
+        // If offset exceeds 120 minutes, clamp sunrise to exactly 120 min before wakeup
+        if (offset > 120) {
+            const clamped = subtractMinutes(currentWakeup.h, currentWakeup.m, 120);
+            setSunriseHour(clamped.h);
+            setSunriseMin(clamped.m);
+            setSunriseOffsetMin(120);
+            sunriseOffsetRef.current = 120;
+        } else {
+            // Normal case: accept the dragged position
             setSunriseHour(hour);
             setSunriseMin(min);
-            const offset = minutesDiff(hour, min, wakeupHour, wakeupMin);
             setSunriseOffsetMin(offset);
+            sunriseOffsetRef.current = offset;
         }
-        // If invalid, don't update - keep previous value
     };
 
     const handleWakeupChange = (hour, min) => {
+        const currentBedtime = bedtimeRef.current;
+
+        // Desired offset is the existing offset but capped to 120
+        let desiredOffset = sunriseOffsetRef.current;
+        if (desiredOffset > 120) desiredOffset = 120;
+
+        // Update wakeup immediately for downstream calculations
+        wakeupRef.current = { h: hour, m: min };
         setWakeupHour(hour);
         setWakeupMin(min);
 
-        const suggested = subtractMinutes(hour, min, sunriseOffsetMin);
-        if (isTimeBetween(suggested.h, suggested.m, bedtimeHour, bedtimeMin, hour, min)) {
-            setSunriseHour(suggested.h);
-            setSunriseMin(suggested.m);
+        // Total available window from bedtime (t0) to new wakeup (t1) going forward in time
+        const totalWindow = minutesDiff(currentBedtime.h, currentBedtime.m, hour, min);
+        // The offset cannot exceed either 120 minutes or the total window
+        const finalOffset = Math.min(desiredOffset, Math.min(120, totalWindow));
+
+        // Compute sunrise as (bedtime + (totalWindow - finalOffset)) so it is always after bedtime along the same arc
+        const sunriseFromBed = totalWindow - finalOffset;
+        let sunriseCandidate = addMinutes(currentBedtime.h, currentBedtime.m, sunriseFromBed);
+
+        // Safety: ensure candidate lies on the bedtime -> wakeup arc
+        if (!isTimeBetween(sunriseCandidate.h, sunriseCandidate.m, currentBedtime.h, currentBedtime.m, hour, min)) {
+            sunriseCandidate = { h: currentBedtime.h, m: currentBedtime.m };
+            const recalculatedOffset = minutesDiff(sunriseCandidate.h, sunriseCandidate.m, hour, min);
+            const cappedOffset = Math.min(120, recalculatedOffset);
+            setSunriseOffsetMin(cappedOffset);
+            sunriseOffsetRef.current = cappedOffset;
         } else {
-            // Keep previous sunrise if suggested time is out of bounds
-            // sunriseOffsetMin remains unchanged so future changes can still apply when valid
+            setSunriseOffsetMin(finalOffset);
+            sunriseOffsetRef.current = finalOffset;
         }
 
-        checkShortSleep(bedtimeHour, bedtimeMin, hour, min);
+        setSunriseHour(sunriseCandidate.h);
+        setSunriseMin(sunriseCandidate.m);
+
+        checkShortSleep(currentBedtime.h, currentBedtime.m, hour, min);
     };
 
     const handleBedtimeChange = (hour, min) => {
+        const currentWake = wakeupRef.current;
+
+        // Update bedtime immediately for downstream calculations
+        bedtimeRef.current = { h: hour, m: min };
         setBedtimeHour(hour);
         setBedtimeMin(min);
-        checkShortSleep(hour, min, wakeupHour, wakeupMin);
+
+        // Recompute sunrise to ensure it stays after bedtime and within the 120-minute cap
+        const totalWindow = minutesDiff(hour, min, currentWake.h, currentWake.m);
+        const finalOffset = Math.min(sunriseOffsetRef.current, Math.min(120, totalWindow));
+
+        const candidate = subtractMinutes(currentWake.h, currentWake.m, finalOffset);
+        const withinWindow = isTimeBetween(candidate.h, candidate.m, hour, min, currentWake.h, currentWake.m);
+
+        if (withinWindow) {
+            setSunriseHour(candidate.h);
+            setSunriseMin(candidate.m);
+            setSunriseOffsetMin(finalOffset);
+            sunriseOffsetRef.current = finalOffset;
+        } else {
+            // Fallback: place sunrise at bedtime and recalc offset capped at 120
+            const recalculatedOffset = minutesDiff(hour, min, currentWake.h, currentWake.m);
+            const capped = Math.min(120, recalculatedOffset);
+            const fallback = subtractMinutes(currentWake.h, currentWake.m, capped);
+            setSunriseHour(fallback.h);
+            setSunriseMin(fallback.m);
+            setSunriseOffsetMin(capped);
+            sunriseOffsetRef.current = capped;
+        }
+
+        checkShortSleep(hour, min, currentWake.h, currentWake.m);
     };
 
     return (
@@ -105,7 +195,19 @@ export function HomeAlarmSetScreen({navigation}) {
                 style = {{height:240,width:394}} >
 
                     <CusHeader navigation = {navigation} title={'Alarm Set'} previousPage={"Home"}/>
-                    <View style={{marginTop:100, height:260,alignSelf:'stretch'}}/>
+                    <View style={{marginTop:100, height:260,alignSelf:'stretch'}}>
+                            <CircularAlarmSetPanel
+                                bedtimeHour={bedtimeHour}
+                                bedtimeMin={bedtimeMin}
+                                sunriseHour={sunriseHour}
+                                sunriseMin={sunriseMin}
+                                wakeupHour={wakeupHour}
+                                wakeupMin={wakeupMin}
+                                onBedtimeChange={handleBedtimeChange}
+                                onSunriseChange={handleSunriseChange}
+                                onWakeupChange={handleWakeupChange}
+                            />
+                    </View>
                     <View style={{alignSelf:'stretch',padding:8,height:400}}>
                         
                         <View style = {{ //DaySetPanel
@@ -279,12 +381,6 @@ const RepeatIntervalCell = ({icon, title, value, onSelect}) => {
     );
 };
 
-function CircularAlarmSetPanel(){
-    return (
-        <View>
-        </View>
-    )
-}
 
 const DaySetCell = ({DoW}) => {
 
