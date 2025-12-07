@@ -2,7 +2,7 @@ import React , {useState, useEffect} from 'react';
 import { 
     Image, ImageBackground,Text, View, StyleSheet, 
     TouchableOpacity, TouchableHighlight,
-    TouchableWithoutFeedback, 
+    TouchableWithoutFeedback, Alert,
     } from 'react-native';
 import {Picker} from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
@@ -32,6 +32,7 @@ export function HomeAlarmSetScreen({navigation}) {
     const [wakeupHour, setWakeupHour] = useState(7);
     const [wakeupMin, setWakeupMin] = useState(0);
     const [sunriseOffsetMin, setSunriseOffsetMin] = useState(30); // difference between wakeup and sunrise in minutes
+    const [repeatIntervalMin, setRepeatIntervalMin] = useState(live.repeat_interval_min || 5); // 0 means never
 
     // Helper function to check if a time is between two times (handling midnight wrap)
     const isTimeBetween = (checkHour, checkMin, startHour, startMin, endHour, endMin) => {
@@ -58,6 +59,13 @@ export function HomeAlarmSetScreen({navigation}) {
         return ((h2 * 60 + m2) - (h1 * 60 + m1) + 1440) % 1440;
     };
 
+    const checkShortSleep = (bedH, bedM, wakeH, wakeM) => {
+        const diff = minutesDiff(bedH, bedM, wakeH, wakeM);
+        if (diff > 0 && diff < 240) {
+            Alert.alert("You're working so hard... T.T", "We noticed that tonight you are sleeping for less than 4 hours... \nMay tomorrow bring you peace from the hustle and bustle.");
+        }
+    };
+
     // Validate and constrain sunrise time
     const handleSunriseChange = (hour, min) => {
         if (isTimeBetween(hour, min, bedtimeHour, bedtimeMin, wakeupHour, wakeupMin)) {
@@ -81,6 +89,14 @@ export function HomeAlarmSetScreen({navigation}) {
             // Keep previous sunrise if suggested time is out of bounds
             // sunriseOffsetMin remains unchanged so future changes can still apply when valid
         }
+
+        checkShortSleep(bedtimeHour, bedtimeMin, hour, min);
+    };
+
+    const handleBedtimeChange = (hour, min) => {
+        setBedtimeHour(hour);
+        setBedtimeMin(min);
+        checkShortSleep(hour, min, wakeupHour, wakeupMin);
     };
 
     return (
@@ -122,12 +138,12 @@ export function HomeAlarmSetScreen({navigation}) {
                                     aniOut = {'fadeOutLeft'}
                                     hour = {bedtimeHour}
                                     min = {bedtimeMin}
-                                    onTimeChange = {(h, m) => {setBedtimeHour(h); setBedtimeMin(m);}}
+                                    onTimeChange = {handleBedtimeChange}
                                     />
                             </View>
                             <View style = {lstyles.timeSetCell}>
                                 <TimeSetCell 
-                                    addr = {require('../assets/icons/moonsleep.png')} 
+                                    addr = {require('../assets/icons/sunrise.png')} 
                                     text = {'Sunrise'} 
                                     aniIn = {'fadeIn'}
                                     aniOut = {'fadeOut'}
@@ -161,9 +177,12 @@ export function HomeAlarmSetScreen({navigation}) {
                                             value = {live.preset_id} />
                         </View>
                         <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}>
-                            <OtherSetCell   icon = {require('../assets/icons/AlarmSetInterval.png')} 
-                                            title = {'Repeat Interval'}
-                                            value = {`${live.repeat_interval_min} min`} />
+                            <RepeatIntervalCell 
+                                icon = {require('../assets/icons/AlarmSetInterval.png')} 
+                                title = {'Repeat Interval'}
+                                value = {repeatIntervalMin === 0 ? 'Never' : `${repeatIntervalMin} min`}
+                                onSelect = {(val) => setRepeatIntervalMin(val)}
+                            />
                         </View>
                     </View>
             </ImageBackground>
@@ -214,6 +233,51 @@ function CusHeader({navigation, title}) {
         </View>
     )
 }
+
+const RepeatIntervalCell = ({icon, title, value, onSelect}) => {
+    const [modalVisible, setModalVisible] = useState(false);
+
+    return (
+        <TouchableOpacity style = {{padding:10,flexDirection: 'row',justifyContent:'flex-start'}} onPress={() => setModalVisible(true)}>
+            <View style = {{...containers.CenterAJ, flex:1}}>
+                {/* Adjust icon size in OtherSetCellIcon if you want a different size */}
+                <OtherSetCellIcon src = {icon}/>
+            </View>
+            <View style = {{left:10, justifyContent:'center', flex:5}}>
+                {/* Adjust text styles here if you want different sizes or weights */}
+                <Text style = {{...textStyles.reg11,opacity:0.5}}>{title}</Text>
+                <Text style = {{...textStyles.medium16,lineHeight:18}}>{value}</Text>
+            </View>
+            <View style = {{...containers.CenterAJ, flex: 0.5}}>
+                <Image source={require('../assets/icons/arrow-right.png')} style={{height:16,width:16}} />
+            </View>
+
+            <Modal
+                isVisible={modalVisible}
+                transparent={true}
+                onRequestClose={() => setModalVisible(false)}
+                animationIn={'fadeInUp'}
+                animationOut={'fadeOutDown'}
+            >
+                <TouchableWithoutFeedback onPress={() => setModalVisible(false)}>
+                    <View style = {{...containers.CenterAJ, backgroundColor:'rgba(0,0,0,0.4)'}}>
+                        <TouchableWithoutFeedback>
+                            <View>
+                                <RepeatIntervalPanel
+                                    initialValue={value === 'Never' ? 0 : parseInt(value)}
+                                    onClose={(val) => {
+                                        onSelect(val);
+                                        setModalVisible(false);
+                                    }}
+                                />
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+        </TouchableOpacity>
+    );
+};
 
 function CircularAlarmSetPanel(){
     return (
@@ -305,8 +369,8 @@ const TimeSetCell = ({addr, text, aniIn, aniOut, hour = 11, min = 0, onTimeChang
 
 const PickTimePanel = ({onClose, initialHour = 0, initialMin = 0, iconAddr, title}) => {
   // Adjustable sizing for icon and title
-  const iconSize = 20;
-  const titleFontSize = 14;
+  const iconSize = 25;
+  const titleFontSize = 18;
   
   const barWidth = 100
   const padding = 20
@@ -334,7 +398,7 @@ const PickTimePanel = ({onClose, initialHour = 0, initialMin = 0, iconAddr, titl
         {iconAddr && title && (
           <View style={{flexDirection:'row', alignItems:'center', justifyContent:'center', marginBottom:16}}>
             <Image source={iconAddr} style={{height:iconSize, width:iconSize, marginRight:8}}/>
-            <Text style={{...textStyles.semibold15, fontSize:titleFontSize, color:'white'}}>{title}</Text>
+            <Text style={{...textStyles.semibold15, fontSize:titleFontSize, color:'white',opacity:0.5,lineHeight:24}}>{title}</Text>
           </View>
         )}
         
@@ -410,11 +474,69 @@ const PickTimePanel = ({onClose, initialHour = 0, initialMin = 0, iconAddr, titl
             }}
             onPress={() => onClose(Hour, Min)}
             >
-            <Text style = {{...textStyles.medium16, color:'rgba(255,255,255,0.7)',fontSize:18,fontWeight:'bold',top:2,}}>CLOSE</Text>
+            <Text style = {{...textStyles.medium16, color:'rgba(255,255,255,0.7)',fontSize:18,fontWeight:'bold',top:2,}}>SET</Text>
         </TouchableOpacity> 
 
     </View>
   )
+}
+
+const RepeatIntervalPanel = ({ onClose, initialValue = 0 }) => {
+    const titleFontSize = 14;
+    const barWidth = 120;
+    const padding = 20;
+    const mainRadius = 40;
+    const buttonRadius = 20;
+    const bgcolor = '#0C112E';
+    const [val, setVal] = useState(initialValue);
+
+    useEffect(() => {
+        setVal(initialValue);
+    }, [initialValue]);
+
+    return (
+        <View style = {{
+                        backgroundColor:bgcolor,
+                        padding:padding,
+                        borderRadius:mainRadius,
+                        borderWidth:1,
+                        borderColor:'#353951'
+                        }}>
+                {/* Adjust titleFontSize above to tweak header text size */}
+                <View style={{alignItems:'center', justifyContent:'center', marginBottom:16}}>
+                    <Text style={{...textStyles.semibold15, fontSize:titleFontSize, color:'white'}}>Repeat Interval</Text>
+                </View>
+
+                <View style = {{alignItems:'center',justifyContent:'center',flexDirection:'row'}}>
+                    <Picker
+                        selectedValue={val}
+                        itemStyle={{width:barWidth,color:'white'}}
+                        onValueChange={(itemValue) => {
+                                setVal(itemValue);
+                        }}
+                    >
+                        <Picker.Item label="Never" value={0} />
+                        {Array.from({length:60}, (_, idx) => idx + 1).map(n => (
+                                <Picker.Item key={n} label={`${n}`} value={n} />
+                        ))}
+                    </Picker>
+                </View>
+
+                <TouchableOpacity 
+                        style = {{
+                                backgroundColor:'rgba(255,255,255,0.15)',
+                                borderRadius:buttonRadius,
+                                justifyContent:'center',
+                                alignItems:'center',
+                                height: 2 * buttonRadius,
+                        }}
+                        onPress={() => onClose(val)}
+                        >
+                        <Text style = {{...textStyles.medium16, color:'rgba(255,255,255,0.7)',fontSize:18,fontWeight:'bold',top:2,}}>SET</Text>
+                </TouchableOpacity> 
+
+        </View>
+    )
 }
 
 
