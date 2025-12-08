@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Image, ImageBackground, Text, View, TouchableOpacity, StyleSheet, Switch, Button } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -296,6 +297,48 @@ const HomeControlPanel = ({pass}) => {
 }
 
 const HomeAlarmSetPanel = ({pass}) => {
+    const [bedtimeDisplay, setBedtimeDisplay] = useState('11:00 PM');
+    const [wakeupDisplay, setWakeupDisplay] = useState('7:00 AM');
+
+    // Helper function to convert 24-hour time to 12-hour format with AM/PM
+    const formatTime12Hour = (timeStr) => {
+        if (!timeStr) return '--:-- --';
+        const [hourStr, minStr] = timeStr.split(':');
+        const hour = parseInt(hourStr);
+        const min = parseInt(minStr);
+        
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        const period = hour < 12 ? 'AM' : 'PM';
+        const displayMin = String(min).padStart(2, '0');
+        
+        return `${displayHour}:${displayMin} ${period}`;
+    };
+
+    // Load active alarm config from AsyncStorage
+    useEffect(() => {
+        const loadActiveAlarm = async () => {
+            try {
+                const activeConfigStr = await AsyncStorage.getItem('activeAlarmConfig');
+                if (activeConfigStr) {
+                    const activeConfig = JSON.parse(activeConfigStr);
+                    setBedtimeDisplay(formatTime12Hour(activeConfig.bedtime));
+                    setWakeupDisplay(formatTime12Hour(activeConfig.wakeup_time));
+                }
+            } catch (error) {
+                console.error('Error loading active alarm config in Home.js:', error);
+            }
+        };
+        
+        loadActiveAlarm();
+        
+        // Reload when screen comes into focus (when returning from AlarmSet screen)
+        const unsubscribe = pass.navigation.addListener('focus', () => {
+            loadActiveAlarm();
+        });
+        
+        return unsubscribe;
+    }, [pass.navigation]);
+
     return(
         <TouchableOpacity 
                 style = {{flex:1}}
@@ -304,11 +347,11 @@ const HomeAlarmSetPanel = ({pass}) => {
             <Text style = {{...textStyles.medium16,top:13,left:17}}>Alarm Set</Text>
             <View style={{top:20,left:24}}>
                 <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'}/>
-                <Text style = {{...textStyles.semibold15,lineHeight:18}}>11:00 PM</Text>
+                <Text style = {{...textStyles.semibold15,lineHeight:18}}>{bedtimeDisplay}</Text>
             </View>
             <View style={{top:25,left:24}}>
                 <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'}/>
-                <Text style = {{...textStyles.semibold15,lineHeight:18}}>17:00 AM</Text>
+                <Text style = {{...textStyles.semibold15,lineHeight:18}}>{wakeupDisplay}</Text>
             </View>
             
         </TouchableOpacity>

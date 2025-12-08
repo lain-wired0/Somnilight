@@ -3,7 +3,7 @@ import { View, Text, PanResponder, Image } from 'react-native';
 import Svg, { Circle, Path, Text as SvgText, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { textStyles } from '../styles';
 
-const CircularAlarmSetPanel = ({ bedtimeHour, bedtimeMin, sunriseHour, sunriseMin, wakeupHour, wakeupMin, onBedtimeChange, onSunriseChange, onWakeupChange }) => {
+const CircularAlarmSetPanel = ({ bedtimeHour, bedtimeMin, sunriseHour, sunriseMin, wakeupHour, wakeupMin, onBedtimeChange, onSunriseChange, onWakeupChange, onDraggingChange }) => {
   const diameter = 250;
   const radius = diameter / 2;
   const strokeWidth = 26;
@@ -12,6 +12,7 @@ const CircularAlarmSetPanel = ({ bedtimeHour, bedtimeMin, sunriseHour, sunriseMi
 
   const [draggingHandle, setDraggingHandle] = useState(null); // 'bedtime', 'sunrise', or 'wakeup'
   const activeHandleRef = useRef(null);
+  const isDraggingRef = useRef(false); // Immediate dragging state for parent
   const bedtimeRef = useRef({ h: bedtimeHour, m: bedtimeMin });
   const sunriseRef = useRef({ h: sunriseHour, m: sunriseMin });
   const wakeRef = useRef({ h: wakeupHour, m: wakeupMin });
@@ -22,6 +23,13 @@ const CircularAlarmSetPanel = ({ bedtimeHour, bedtimeMin, sunriseHour, sunriseMi
     sunriseRef.current = { h: sunriseHour, m: sunriseMin };
     wakeRef.current = { h: wakeupHour, m: wakeupMin };
   }, [bedtimeHour, bedtimeMin, sunriseHour, sunriseMin, wakeupHour, wakeupMin]);
+
+  // Notify parent when dragging state changes
+  useEffect(() => {
+    if (onDraggingChange) {
+      onDraggingChange(draggingHandle !== null);
+    }
+  }, [draggingHandle, onDraggingChange]);
 
   const timeToAngle = (h, m) => {
     const totalMinutes = h * 60 + m;
@@ -87,12 +95,13 @@ const CircularAlarmSetPanel = ({ bedtimeHour, bedtimeMin, sunriseHour, sunriseMi
         if (!handle) return;
         const angle = getTouchAngle(locationX, locationY);
         activeHandleRef.current = handle;
+        isDraggingRef.current = true; // Set immediately
         setDraggingHandle(handle);
 
         const { h, m } = angleToTime(angle);
-        if (handle === 'bedtime') onBedtimeChange(h, m);
-        else if (handle === 'sunrise') onSunriseChange(h, m);
-        else onWakeupChange(h, m);
+        if (handle === 'bedtime') onBedtimeChange(h, m, true); // Pass isDragging flag
+        else if (handle === 'sunrise') onSunriseChange(h, m, true);
+        else onWakeupChange(h, m, true);
       },
       onPanResponderMove: (evt) => {
         const handle = activeHandleRef.current;
@@ -100,18 +109,32 @@ const CircularAlarmSetPanel = ({ bedtimeHour, bedtimeMin, sunriseHour, sunriseMi
         const { locationX, locationY } = evt.nativeEvent;
         const angle = getTouchAngle(locationX, locationY);
         const { h, m } = angleToTime(angle);
-        if (handle === 'bedtime') onBedtimeChange(h, m);
-        else if (handle === 'sunrise') onSunriseChange(h, m);
-        else onWakeupChange(h, m);
+        if (handle === 'bedtime') onBedtimeChange(h, m, true); // Pass isDragging flag
+        else if (handle === 'sunrise') onSunriseChange(h, m, true);
+        else onWakeupChange(h, m, true);
       },
       onPanResponderRelease: () => {
+        const wasDragging = isDraggingRef.current;
         activeHandleRef.current = null;
+        isDraggingRef.current = false; // Clear immediately
         setDraggingHandle(null);
+        
+        // Notify parent that dragging ended if it was active
+        if (wasDragging && onDraggingChange) {
+          onDraggingChange(false);
+        }
       },
       onPanResponderTerminationRequest: () => true,
       onPanResponderTerminate: () => {
+        const wasDragging = isDraggingRef.current;
         activeHandleRef.current = null;
+        isDraggingRef.current = false; // Clear immediately
         setDraggingHandle(null);
+        
+        // Notify parent that dragging ended if it was active
+        if (wasDragging && onDraggingChange) {
+          onDraggingChange(false);
+        }
       },
     })
   ).current;
