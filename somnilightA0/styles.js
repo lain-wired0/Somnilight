@@ -1,5 +1,5 @@
 import React from 'react'
-import { StyleSheet, Text } from 'react-native'
+import { StyleSheet, Text, View, Image } from 'react-native'
 
 let themeTextColor = 'white'
 
@@ -71,4 +71,13 @@ const ele = StyleSheet.create({
     }
 })
 
-export { textStyles , containers, colors, ele}
+const Icon12text11 = ({addr,text}) => {
+    return (
+        <View style={{flexDirection:'row',alignItems:'center'}}>
+            <Image source={addr} style = {{height:12,width:12}}/>
+            <Text style = {{...textStyles.reg11,color:'rgba(116,119,135,1)',left:3}}>{text}</Text>
+        </View>
+    )
+}
+
+export { textStyles , containers, colors, ele, Icon12text11}

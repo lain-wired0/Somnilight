@@ -1,0 +1,16 @@
+{
+  "presets": [
+    {
+      "name": "Morning_1",
+      "icon": "preJade"
+    },
+    {
+      "name": "Morning_2",
+      "icon": "preCloud"
+    },
+    {
+      "name": "Sleep",
+      "icon": "preMist"
+    }
+  ]
+}

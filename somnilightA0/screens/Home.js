@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Image, ImageBackground, Text, View, TouchableOpacity, StyleSheet, Switch, } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Image, ImageBackground, Text, View, TouchableOpacity, StyleSheet, Switch, Button } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,6 +21,7 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 //Local style
 import { textStyles, colors, containers, ele } from '../styles';
 import { deviceHeight, deviceWidth} from '../App.js'
+import { Icon12text11 } from '../styles';
 
 //Local Navigation
 import { Tabs } from '../App.js';
@@ -29,6 +31,7 @@ import { Stacks } from '../App.js';
 import { HomeAlarmSetScreen } from './HomeAlarmSet.js';
 import LightAdjust from './LightAdjust.js';
 import VolumnAdjust from './VolumnAdjust.js';
+import { HeaderBackground } from '@react-navigation/elements';
 
 let user_name = 'Mushroom'
 
@@ -44,12 +47,14 @@ function getTodayDate() {
 export function HomeStack() {
     return(
         <Stacks.Navigator
-            screenOptions={({route}) => ({headerShown: !(route.name === 'Home')})}
+            screenOptions={({route}) => ({
+                headerShown: false
+            })}
         >
             <Stacks.Screen name = "Home" component = { HomeScreen }/>
-            <Stacks.Screen name = "HomeAlarmSet" component = { HomeAlarmSetScreen }/>
             <Stacks.Screen name = "LightAdjust" component={ LightAdjust }/>
             <Stacks.Screen name = "VolumnAdjust" component={ VolumnAdjust }/>
+
         </Stacks.Navigator>
     )
 }
@@ -63,7 +68,6 @@ const HomeScreen = (pass = {navigation, route}) => {
         <ImageBackground 
             source = {require('../assets/general_images/hp_asm.png') } 
             style = {hp_style}>
-
             <Text style={{
                 ...textStyles.semibold15, 
                 fontSize: 20,
@@ -84,8 +88,8 @@ const HomeScreen = (pass = {navigation, route}) => {
             <TouchableOpacity   style = {{
                 left: 322, top:82, size:30, flex:1
                 }}>
-                    <MaterialCommunityIcons 
-                name = {'bell-outline'} size={30} color = {'white'} style={{flex:1}}
+                <MaterialCommunityIcons 
+                    name = {'bell-outline'} size={30} color = {'white'} style={{flex:1}}
                 />
             </TouchableOpacity>
             <View style = {{
@@ -94,13 +98,11 @@ const HomeScreen = (pass = {navigation, route}) => {
                 <HomeConfigSlide pass = {pass}/>
             </View>
             
-
         </ImageBackground>
     </View>
 
     )
-   
-    
+
 }
 
 const HomeConfigSlide = ({pass}) => {
@@ -120,7 +122,6 @@ const HomeConfigSlide = ({pass}) => {
             
             <BottomSheet
                 ref={bottomSheetRef}
-                
                 snapPoints={["40%","90%"]}
                 onChange={handleSheetChanges}
                 backgroundComponent = { BlurSlideBG }
@@ -188,12 +189,11 @@ const HomeConfigSlide = ({pass}) => {
 
 
 const DeviceSwitch = ({location}) => {
-    const [isDeviceOn, setIsDeviceOn] = useState(false);
+    const init = initPower()
+    const [isDeviceOn, setIsDeviceOn] = useState(init);
     const toggleSwitch = () => 
         setIsDeviceOn(previousState => !previousState);
-        setPower(isDeviceOn)
-        
-
+        setPower(isDeviceOn);
     return (
         <Switch 
             trackColor = {{true: '#8068E9',false:'rgba(61, 43, 142, 1)'}}
@@ -207,8 +207,15 @@ const DeviceSwitch = ({location}) => {
     )
 }
 
+async function initPower() {
+    await fetch('http://somnilight.online:1880/pillow/power')
+        .then(response => response.json())
+
+    return (data.power == 'on' ? true :false)
+}
+
 async function setPower(isOn) {
-    const res = await fetch('http://somnilight.online:1880/set_power',{
+    const res = await fetch('http://somnilight.online:1880/pillow/power',{
         method: "POST",
         headers:{
             "Content-Type": "application/json"
@@ -220,10 +227,11 @@ async function setPower(isOn) {
 
     const data = await res.json();
     console.log("set_power response:",data)
-    isDevicePowerOn = data.power.on
+
 }
 
 const HomeControlPanel = ({pass}) => {
+    const [selectedPreset, setSelectedPreset] = useState('jade');
 
     return (
         <BlurView 
@@ -240,21 +248,7 @@ const HomeControlPanel = ({pass}) => {
             <View style = {{flexDirection:'row', height:100,flex:7}}>
                 <View style = {{...containers.violetDarkC20,flex:2}}>
 
-                    <TouchableOpacity 
-                            style = {{flex:1}}
-                            onPress = {() => pass.navigation.navigate('HomeAlarmSet')}
-                            >
-                        <Text style = {{...textStyles.medium16,top:13,left:17}}>Alarm Set</Text>
-                        <View style={{top:20,left:24}}>
-                            <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'} tcolor={'rgba(116,119,135,1)'}/>
-                            <Text style = {{...textStyles.semibold15,lineHeight:18}}>11:00 PM</Text>
-                        </View>
-                        <View style={{top:25,left:24}}>
-                            <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'} tcolor={'rgba(116,119,135,1)'}/>
-                            <Text style = {{...textStyles.semibold15,lineHeight:18}}>17:00 AM</Text>
-                        </View>
-                        
-                    </TouchableOpacity>
+                    <HomeAlarmSetPanel pass={pass}/>
 
                 </View>
                 <View style = {{...containers.violetDarkC20,flex:1}}>
@@ -272,38 +266,94 @@ const HomeControlPanel = ({pass}) => {
                     </TouchableOpacity>
                 </View>                                             
             </View>
-            <View style = {{...containers.violetDarkC20,flex:3,flexDirection:'row'}}>
-                <View style = {{...containers.CenterAJ,flex:1,}}>
-                    <Text style ={{...textStyles.medium16,}}>Presets</Text>
+                <View style={{ ...containers.violetDarkC20, flex: 3, flexDirection: 'row' }}>
+                <View style={{ ...containers.CenterAJ, flex: 1 }}>
+                    <TouchableOpacity
+                    style={{ ...containers.CenterAJ, flex: 1 }}
+                    onPress={() => pass.navigation.navigate('Preset')}
+                    activeOpacity={0.8}
+                    >
+                    <Text style={{ ...textStyles.medium16 }}>Presets</Text>
+                    </TouchableOpacity>
                 </View>
-                <View style = {{...containers.CenterAJ,flex:2}}>
-                    <View style = {{
-                            alignItems:'center',
-                            flexDirection:'row',
-                            right:5,}}>
-                        <TouchableOpacity>
-                            <Image source={require('../assets/general_images/preJade.png')}
-                                style = {containers.presetButton}/>
-                        </TouchableOpacity>
-                        <TouchableOpacity>
-                            <Image source={require('../assets/general_images/preMist.png')}
-                                style = {containers.presetButton}/>
-                        </TouchableOpacity>
-                        <TouchableOpacity>
-                            <Image source={require('../assets/general_images/preCloud.png')}
-                                style = {containers.presetButton}/>
-                        </TouchableOpacity>
-                        <TouchableOpacity>
-                            <View style = {{
-                                ...containers.presetButton,
-                                backgroundColor:"#4E3692",
-                                alignItems:'center',
-                                justifyContent:'center',}}>
-                                <Image source={require('../assets/icons/plus.png')}/>
-                            </View>
-                        </TouchableOpacity>
+
+                {/* 右侧：三个头像 + Add，仅在首页切换预设，不跳转 */}
+                <View style={{ ...containers.CenterAJ, flex: 2 }}>
+                    <View
+                    style={{
+                        alignItems: 'center',
+                        flexDirection: 'row',
+                        right: 5,
+                    }}
+                    >
+                    {/* Jade */}
+                    <TouchableOpacity
+                        onPress={() => setSelectedPreset('jade')}
+                        activeOpacity={0.9}
+                    >
+                        <Image
+                        source={require('../assets/general_images/preJade.png')}
+                        style={[
+                            containers.presetButton,
+                            selectedPreset === 'jade' && {
+                            borderWidth: 2,
+                            borderColor: '#FFFFFF',
+                            },
+                        ]}
+                        />
+                    </TouchableOpacity>
+
+                    {/* Mist */}
+                    <TouchableOpacity
+                        onPress={() => setSelectedPreset('mist')}
+                        activeOpacity={0.9}
+                    >
+                        <Image
+                        source={require('../assets/general_images/preMist.png')}
+                        style={[
+                            containers.presetButton,
+                            selectedPreset === 'mist' && {
+                            borderWidth: 2,
+                            borderColor: '#FFFFFF',
+                            },
+                        ]}
+                        />
+                    </TouchableOpacity>
+
+                    {/* Cloud */}
+                    <TouchableOpacity
+                        onPress={() => setSelectedPreset('cloud')}
+                        activeOpacity={0.9}
+                    >
+                        <Image
+                        source={require('../assets/general_images/preCloud.png')}
+                        style={[
+                            containers.presetButton,
+                            selectedPreset === 'cloud' && {
+                            borderWidth: 2,
+                            borderColor: '#FFFFFF',
+                            },
+                        ]}
+                        />
+                    </TouchableOpacity>
+
+                    {/* 加号：这里我让它直接跳到 Preset 页面，也可以改成别的逻辑 */}
+                    <TouchableOpacity
+                        onPress={() => pass.navigation.navigate('Preset')}
+                        activeOpacity={0.9}
+                    >
+                        <View
+                        style={{
+                            ...containers.presetButton,
+                            backgroundColor: '#4E3692',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                        >
+                        <Image source={require('../assets/icons/plus.png')} />
+                        </View>
+                    </TouchableOpacity>
                     </View>
-                    
                 </View>
             </View>
         </BlurView>
@@ -311,6 +361,48 @@ const HomeControlPanel = ({pass}) => {
 }
 
 const HomeAlarmSetPanel = ({pass}) => {
+    const [bedtimeDisplay, setBedtimeDisplay] = useState('11:00 PM');
+    const [wakeupDisplay, setWakeupDisplay] = useState('7:00 AM');
+
+    // Helper function to convert 24-hour time to 12-hour format with AM/PM
+    const formatTime12Hour = (timeStr) => {
+        if (!timeStr) return '--:-- --';
+        const [hourStr, minStr] = timeStr.split(':');
+        const hour = parseInt(hourStr);
+        const min = parseInt(minStr);
+        
+        const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+        const period = hour < 12 ? 'AM' : 'PM';
+        const displayMin = String(min).padStart(2, '0');
+        
+        return `${displayHour}:${displayMin} ${period}`;
+    };
+
+    // Load active alarm config from AsyncStorage
+    useEffect(() => {
+        const loadActiveAlarm = async () => {
+            try {
+                const activeConfigStr = await AsyncStorage.getItem('activeAlarmConfig');
+                if (activeConfigStr) {
+                    const activeConfig = JSON.parse(activeConfigStr);
+                    setBedtimeDisplay(formatTime12Hour(activeConfig.bedtime));
+                    setWakeupDisplay(formatTime12Hour(activeConfig.wakeup_time));
+                }
+            } catch (error) {
+                console.error('Error loading active alarm config in Home.js:', error);
+            }
+        };
+        
+        loadActiveAlarm();
+        
+        // Reload when screen comes into focus (when returning from AlarmSet screen)
+        const unsubscribe = pass.navigation.addListener('focus', () => {
+            loadActiveAlarm();
+        });
+        
+        return unsubscribe;
+    }, [pass.navigation]);
+
     return(
         <TouchableOpacity 
                 style = {{flex:1}}
@@ -318,12 +410,12 @@ const HomeAlarmSetPanel = ({pass}) => {
                 >
             <Text style = {{...textStyles.medium16,top:13,left:17}}>Alarm Set</Text>
             <View style={{top:20,left:24}}>
-                <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'} tcolor={'rgba(116,119,135,1)'}/>
-                <Text style = {{...textStyles.semibold15,lineHeight:18}}>11:00 PM</Text>
+                <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'}/>
+                <Text style = {{...textStyles.semibold15,lineHeight:18}}>{bedtimeDisplay}</Text>
             </View>
             <View style={{top:25,left:24}}>
-                <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'} tcolor={'rgba(116,119,135,1)'}/>
-                <Text style = {{...textStyles.semibold15,lineHeight:18}}>17:00 AM</Text>
+                <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'}/>
+                <Text style = {{...textStyles.semibold15,lineHeight:18}}>{wakeupDisplay}</Text>
             </View>
             
         </TouchableOpacity>
@@ -389,17 +481,6 @@ const basicBlurC20 = {
     ...StyleSheet.absoluteFill,
     overflow:'hidden',
     borderRadius:20,
-}
-
-let vart = '../assets/icons/moonsleep.png'
-
-const Icon12text11 = ({addr,text,tcolor}) => {
-    return (
-        <View style={{flexDirection:'row',alignItems:'center'}}>
-            <Image source={addr} style = {{height:12,width:12}}/>
-            <Text style = {{...textStyles.reg11,color:tcolor,left:3}}>{text}</Text>
-        </View>
-    )
 }
 
 const hp_style = {
