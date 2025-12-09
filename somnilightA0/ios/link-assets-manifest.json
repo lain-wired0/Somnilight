@@ -1,0 +1,29 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/PingFangSC-Light.otf",
+      "sha1": "370a4b03c477ad2b1fff4d922b699d1752975557"
+    },
+    {
+      "path": "assets/fonts/PingFangSC-Medium.otf",
+      "sha1": "3eae6ac64cccf9ed423b7e02c9f2cb66d6124af7"
+    },
+    {
+      "path": "assets/fonts/PingFangSC-Regular.otf",
+      "sha1": "c4ba17e6faf6c044ac1958f16cd41a38b636faf0"
+    },
+    {
+      "path": "assets/fonts/PingFangSC-Semibold.otf",
+      "sha1": "b4cc27273ef76c4f9928874f0eca9c3d72a739dd"
+    },
+    {
+      "path": "assets/fonts/PingFangSC-Thin.otf",
+      "sha1": "57b9af1ecfe40a87eb9527400b7e0a59aa43ff45"
+    },
+    {
+      "path": "assets/fonts/PingFangSC-Ultralight.otf",
+      "sha1": "6fc02df60defeeadee9d38c0c5f05537f10188e6"
+    }
+  ]
+}
