@@ -48,5 +48,8 @@
   "overrides": {
     "d3-color": "^3.1.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "expo-module-scripts": "^5.0.8"
+  }
 }

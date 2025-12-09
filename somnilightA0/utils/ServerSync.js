@@ -46,15 +46,16 @@ export const syncAlarmToServerDebounced = async (alarmConfig, onRetry) => {
     // If enough time has passed since last sync, sync immediately
     if (timeSinceLastSync >= SYNC_DEBOUNCE_INTERVAL) {
         console.log(`[Sync] Executing immediate sync (${timeSinceLastSync}ms since last sync)`);
+        lastSyncTime = now; // Update BEFORE syncing to prevent race conditions
         await performSync(alarmConfig, onRetry);
     } else {
         // Schedule a sync after the debounce interval
         const waitTime = SYNC_DEBOUNCE_INTERVAL - timeSinceLastSync;
         console.log(`[Sync] Debouncing sync (waiting ${waitTime}ms)`);
-        
         syncTimeout = setTimeout(async () => {
             console.log('[Sync] Executing debounced sync with latest alarm config');
             if (pendingSyncAlarm) {
+                lastSyncTime = Date.now(); // Update BEFORE syncing to prevent race conditions
                 await performSync(pendingSyncAlarm, onRetry);
             }
             syncTimeout = null;
@@ -104,13 +105,12 @@ const performSync = async (alarmConfig, onRetry) => {
         if (!response.ok) {
             throw new Error(`Server responded with status ${response.status}`);
         }
-
         const data = await response.json();
         console.log('Server alarm sync response:', data);
 
-        // Update last sync time
-        lastSyncTime = Date.now();
-        pendingSyncAlarm = null; // Clear pending since we just synced
+        // Clear pending since we just synced
+        pendingSyncAlarm = null;
+        lastFailureAlarmShown = null; // Reset failure alert state on successful sync
         lastFailureAlarmShown = null; // Reset failure alert state on successful sync
 
         // Check if server confirmed receipt

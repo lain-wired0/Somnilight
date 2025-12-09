@@ -304,9 +304,13 @@ const handleDeletePreset = id => {
               </Text>
             </View>
 
-            {/* 右侧加号（可以先留着，后面看需求要不要用） */}
-            <TouchableOpacity style={styles.iconButton} activeOpacity={0.8}>
-              <Ionicons name="add" size={24} color="#FFF" />
+            {/* delete button */}
+            <TouchableOpacity 
+              style={styles.iconButton} 
+              activeOpacity={0.8}
+              onPress={() => handleDeletePreset(activePresetId)}
+            >
+              <Ionicons name="trash-outline" size={24} color="#FFF" />
             </TouchableOpacity>
           </View>
 

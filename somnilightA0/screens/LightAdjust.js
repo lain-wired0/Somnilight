@@ -8,6 +8,7 @@ const SLIDER_WIDTH = 120;
 const SLIDER_TRACK_HEIGHT = 320;
 const HANDLE_HEIGHT = 30;
 const SERVER_URL = 'http://150.158.158.233:1880';
+const THROTTLE_INTERVAL = 200; // Increase to 1 second to avoid server-side queue buildup
 
 export default function LightAdjust({ onClose, showHandle = false }) {
   const [brightness, setBrightness] = useState(65);
@@ -16,6 +17,7 @@ export default function LightAdjust({ onClose, showHandle = false }) {
 
   const startBrightnessRef = useRef(65);
   const lastSendTime = useRef(0);
+  const abortControllerRef = useRef(null); // Track current request to allow cancellation
 
   // 1) 初始加载：先从 AsyncStorage 再向服务器同步
   useEffect(() => {
@@ -64,8 +66,12 @@ export default function LightAdjust({ onClose, showHandle = false }) {
   const sendStateToServer = useCallback(async (payload) => {
     // payload 例如 { brightness: 60 } 或 { color: "#FFAABB" } 或 二者都有
     const now = Date.now();
-    // 节流：至少间隔 200ms
-    if (now - lastSendTime.current < 200) {
+    const timeSinceLastSend = now - lastSendTime.current;
+    console.log(`[LightAdjust] sendStateToServer called, time since last: ${timeSinceLastSend}ms, payload:`, payload);
+    
+    // 节流：至少间隔 1000ms (increased from 200ms to prevent server queue buildup)
+    if (timeSinceLastSend < THROTTLE_INTERVAL) {
+      console.log(`[LightAdjust] THROTTLED (${timeSinceLastSend}ms < ${THROTTLE_INTERVAL}ms)`);
       // 仍然保存到本地但不频繁发送
       if (payload.brightness !== undefined) {
         AsyncStorage.setItem('last_brightness', payload.brightness.toString()).catch(() => {});
@@ -75,7 +81,15 @@ export default function LightAdjust({ onClose, showHandle = false }) {
       }
       return;
     }
+    
+    console.log(`[LightAdjust] SENDING to server:`, payload);
     lastSendTime.current = now;
+
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      console.log('[LightAdjust] Cancelled previous request');
+    }
 
     // 保存本地
     if (payload.brightness !== undefined) {
@@ -86,15 +100,35 @@ export default function LightAdjust({ onClose, showHandle = false }) {
     }
 
     try {
-      await fetch(`${SERVER_URL}/set_state`, {
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      
+      const response = await fetch(`${SERVER_URL}/set_state`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+      abortControllerRef.current = null; // Clear reference after successful completion
+      
+      if (!response.ok) {
+        console.warn(`[LightAdjust] Server returned error status: ${response.status}`);
+        return;
+      }
+      
+      console.log(`[LightAdjust] Server response status:`, response.status);
     } catch (err) {
-      console.error('Failed to POST /set_state', err);
+      abortControllerRef.current = null; // Clear reference on error
+      if (err.name === 'AbortError') {
+        console.log('[LightAdjust] Request cancelled or timeout'); // Changed to log level since this is expected
+      } else {
+        console.error('[LightAdjust] Failed to POST /set_state', err);
+      }
     }
-  }, []);
+  }, [selectedColor]);
 
   // 3) 亮度变化处理（滑动时）
   const handleBrightnessChange = useCallback((value) => {
