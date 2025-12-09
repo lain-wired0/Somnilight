@@ -1,6 +1,5 @@
 //Fundamentals
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
@@ -46,8 +45,7 @@ function RootTabs() {
   return(
   <Tabs.Navigator 
       screenOptions={ ( {route} ) => ({
-        //headerShown: (route.name !== 'Home'),
-        headerShown: route.name === 'Myinfo' ? false : true,
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: 'rgba(33,29,80,0.8)',
           opacity: 80,

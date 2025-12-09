@@ -1,8 +1,4 @@
-// screens/Stats/WeekView.js
-// 周视图：新日期选择器 + 分离圆角胶囊柱状图
-// 柱子与星期几对齐；平均睡眠时间文字与横线对齐
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { styles } from './StatsStyles';
@@ -19,6 +15,19 @@ const weeklySleepData = [
   { day: 'Sat', deep: 95,  light: 230, rem: 70,  awake: 20 }, // 6h55m
 ];
 
+// --------- 静态心率范围模拟数据（单位：bpm）---------
+// 每天的最小 / 最大心率，用来画周视图的心率范围柱状图
+const weeklyHeartRateData = [
+  { day: 'Sun', min: 58, max: 130 },
+  { day: 'Mon', min: 60, max: 120 },
+  { day: 'Tue', min: 55, max: 125 },
+  { day: 'Wed', min: 57, max: 118 },
+  { day: 'Thu', min: 56, max: 135 },
+  { day: 'Fri', min: 59, max: 122 },
+  { day: 'Sat', min: 54, max: 115 },
+];
+
+
 // 颜色：保持之前设定
 const stageColors = {
   awake: '#FFC850', // 清醒（最上）
@@ -31,7 +40,7 @@ const stageColors = {
 const stageOrder = ['awake', 'rem', 'light', 'deep'];
 
 // 统计图高度
-const CHART_HEIGHT = 180;
+const CHART_HEIGHT = 200;
 
 // 计算某天总睡眠（分钟）
 const getDayTotal = (item) =>
@@ -167,6 +176,24 @@ const WeekView = () => {
   const subtitleDate = formatSubtitleDate(selectedWeekStart);
 
   const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+
+    // --- 心率统计：基于静态周数据 ---
+  const allMinHR = weeklyHeartRateData.map((d) => d.min);
+  const allMaxHR = weeklyHeartRateData.map((d) => d.max);
+  const heartRangeMin = Math.min(...allMinHR);
+  const heartRangeMax = Math.max(...allMaxHR);
+
+  // 模拟静息心率区间
+  const restingMin = 56;
+  const restingMax = 65;
+
+  // 按 weekdayLabels 顺序对齐心率柱状图的数据
+  const heartBars = weekdayLabels.map((label) => {
+    return (
+      weeklyHeartRateData.find((d) => d.day === label) || { min: 0, max: 0 }
+    );
+  });
 
   return (
     <View>
@@ -495,6 +522,186 @@ const WeekView = () => {
           <Text style={styles.statDesc}>Optimal deep sleep</Text>
         </View>
       </View>
+
+            {/* Heart rate weekly range */}
+      <Text style={styles.sectionHeaderOutside}>Heart rate</Text>
+      <View style={[styles.card, { paddingTop: 18, paddingBottom: 18 }]}>
+        {/* 顶部大号心率范围 */}
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
+          <Text
+            style={{
+              color: 'white',
+              fontSize: 26,
+              fontWeight: '700',
+            }}
+          >
+            {heartRangeMin}–{heartRangeMax}
+          </Text>
+          <Text
+            style={{
+              color: 'white',
+              fontSize: 14,
+              marginLeft: 6,
+              marginBottom: 2,
+            }}
+          >
+            bpm
+          </Text>
+        </View>
+        <Text
+          style={{
+            color: '#A0A4C3',
+            fontSize: 12,
+            marginTop: 4,
+          }}
+        >
+          Heart rate range
+        </Text>
+
+        {/* 心率柱状图 */}
+        <View style={{ height: 120, marginTop: 16, marginBottom: 12 }}>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'flex-end',
+              justifyContent: 'space-between',
+            }}
+          >
+            {heartBars.map((item, index) => {
+              // 按全周范围归一化高度
+              const diff = heartRangeMax - heartRangeMin || 1;
+              const minNorm = (item.min - heartRangeMin) / diff;
+              const maxNorm = (item.max - heartRangeMin) / diff;
+              const totalHeight = 90;
+              const barHeight = Math.max(
+                24,
+                (maxNorm - minNorm) * totalHeight
+              );
+              return (
+                <View
+                  key={index}
+                  style={{ flex: 1, alignItems: 'center' }}
+                >
+                  <View
+                    style={{
+                      width: 10,
+                      height: barHeight,
+                      borderRadius: 999,
+                      backgroundColor: '#FF6B7F',
+                    }}
+                  />
+                  <Text
+                    style={{
+                      color: '#8E8E93',
+                      fontSize: 10,
+                      marginTop: 6,
+                    }}
+                  >
+                    {weekdayLabels[index].charAt(0)}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Heart rate / HRV segmented control（静态 UI） */}
+        <View
+          style={{
+            flexDirection: 'row',
+            borderRadius: 20,
+            backgroundColor: 'rgba(0,0,0,0.25)',
+            padding: 4,
+            marginBottom: 8,
+          }}
+        >
+          <View
+            style={{
+              flex: 1,
+              paddingVertical: 8,
+              borderRadius: 16,
+              backgroundColor: '#FFFFFF',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color: '#2A215F',
+              }}
+            >
+              Heart rate
+            </Text>
+          </View>
+          <View
+            style={{
+              flex: 1,
+              paddingVertical: 8,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 13,
+                fontWeight: '600',
+                color: '#C0C4E4',
+              }}
+            >
+              HRV
+            </Text>
+          </View>
+        </View>
+
+        {/* 底部两行摘要 */}
+        <View style={{ marginTop: 4 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              paddingVertical: 4,
+            }}
+          >
+            <Text style={{ color: '#A3A7C7', fontSize: 12 }}>
+              Heart rate range
+            </Text>
+            <Text
+              style={{
+                color: '#FFFFFF',
+                fontSize: 14,
+                fontWeight: '600',
+              }}
+            >
+              {heartRangeMin}–{heartRangeMax} bpm
+            </Text>
+          </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              paddingVertical: 4,
+            }}
+          >
+            <Text style={{ color: '#A3A7C7', fontSize: 12 }}>
+              Resting heart rate
+            </Text>
+            <Text
+              style={{
+                color: '#FFFFFF',
+                fontSize: 14,
+                fontWeight: '600',
+              }}
+            >
+              {restingMin}–{restingMax} bpm
+            </Text>
+          </View>
+        </View>
+      </View>
+
 
       {/* Sleep advice */}
       <Text style={styles.sectionHeaderOutside}>Sleep advice</Text>
