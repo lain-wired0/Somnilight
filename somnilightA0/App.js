@@ -36,37 +36,17 @@ let InactiveColor = '#908EA7'
 let ActiveColor = '#ffffffff'
 
 
-/*
+
 export default function App() {
   return (
     <NavigationContainer>
       <Stacks.Navigator screenOptions={{headerShown:false}}>
          <Stacks.Screen name = 'RootTabs' component={RootTabs}/> 
          <Stacks.Screen name = 'HomeAlarmSet' component={HomeAlarmSetScreen}/>
+         <Stacks.Screen name="Preset" component={PresetScreen} />
       </Stacks.Navigator>
       <StatusBar style ='light' />
     </NavigationContainer>
-  );
-}
-*/
-
-export default function App() {
-  return (
-    <NavigationContainer>
-      <RootStackNavigator />
-      <StatusBar style="light" />
-    </NavigationContainer>
-  );
-}
-
-
-function RootStackNavigator() {
-  return (
-    <Stacks.Navigator screenOptions={{ headerShown: false }}>
-      <Stacks.Screen name="MainTabs" component={RootTabs} />
-
-      <Stacks.Screen name="Preset" component={PresetScreen} />
-    </Stacks.Navigator>
   );
 }
 
