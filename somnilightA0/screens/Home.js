@@ -30,6 +30,7 @@ import { Stacks } from '../App.js';
 //Local Screens
 import { HomeAlarmSetScreen } from './HomeAlarmSet.js';
 import LightAdjust from './LightAdjust.js';
+import VolumnAdjust from './VolumnAdjust.js';
 import { HeaderBackground } from '@react-navigation/elements';
 
 let user_name = 'Mushroom'
@@ -52,6 +53,7 @@ export function HomeStack() {
         >
             <Stacks.Screen name = "Home" component = { HomeScreen }/>
             <Stacks.Screen name = "LightAdjust" component={ LightAdjust }/>
+            <Stacks.Screen name = "VolumnAdjust" component={ VolumnAdjust }/>
 
         </Stacks.Navigator>
     )
@@ -279,11 +281,16 @@ const HomeControlPanel = ({pass}) => {
                 <View style = {{...containers.violetDarkC20,flex:1}}>
                     <TouchableOpacity style = {{flex:1}} 
                         onPress={() => pass.navigation.navigate('LightAdjust')}>
-
+                        <Image source={require('../assets/icons/light_adj.png')}
+                            style = {{top:90,alignSelf:'center',height:40,width:40}}/>
                     </TouchableOpacity>
                 </View>                  
                 <View style = {{...containers.violetDarkC20,flex:1}}>
-
+                    <TouchableOpacity style = {{flex:1}} 
+                        onPress={() => pass.navigation.navigate('VolumnAdjust')}>
+                         <Image source={require('../assets/icons/Volumn_adj.png')}
+                            style = {{top:100,alignSelf:'center',height:25,width:25}}/>
+                    </TouchableOpacity>
                 </View>                                             
             </View>
                 <View style={{ ...containers.violetDarkC20, flex: 3, flexDirection: 'row' }}>
