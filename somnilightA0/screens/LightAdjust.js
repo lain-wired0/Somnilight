@@ -4,12 +4,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { textStyles, containers, colors, ele } from '../styles';
 
 const COLOR_OPTIONS = ['#FFFFFF', '#FFF8E1', '#F6DBA3', '#F7CD62', '#BEDFDF'];
-const SLIDER_WIDTH = 80;
-const SLIDER_TRACK_HEIGHT = 240;
+const SLIDER_WIDTH = 120;
+const SLIDER_TRACK_HEIGHT = 320;
 const HANDLE_HEIGHT = 30;
 const SERVER_URL = 'http://150.158.158.233:1880';
 
-export default function LightAdjust() {
+export default function LightAdjust({ onClose, showHandle = false }) {
   const [brightness, setBrightness] = useState(65);
   const [selectedColor, setSelectedColor] = useState('#FFFFFF');
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
@@ -112,27 +112,37 @@ export default function LightAdjust() {
   }, [brightness, sendStateToServer]);
 
   // 滑块交互
+  const sliderRef = useRef(null);
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
 
-      onPanResponderGrant: () => {
+      onPanResponderGrant: (evt) => {
+        // Store initial touch position for direct manipulation
         startBrightnessRef.current = brightness;
       },
 
-      onPanResponderMove: (_, gestureState) => {
-        const maxDragDistance = SLIDER_TRACK_HEIGHT - HANDLE_HEIGHT;
-        const deltaPercent = (gestureState.dy / maxDragDistance) * 100;
-        let newBrightness = startBrightnessRef.current - deltaPercent;
-        newBrightness = Math.max(0, Math.min(100, Math.round(newBrightness)));
-        setBrightness(newBrightness);
-        // 不要频繁写 AsyncStorage：交给 sendStateToServer 节流处理
-        sendStateToServer({ brightness: newBrightness, color: selectedColor });
+      onPanResponderMove: (evt, gestureState) => {
+        if (!sliderRef.current) return;
+        
+        // Measure slider position on screen
+        sliderRef.current.measure((x, y, width, height, pageX, pageY) => {
+          const touchY = evt.nativeEvent.pageY;
+          const relativeY = touchY - pageY;
+          
+          // Calculate brightness from touch position (inverted: top = 100%, bottom = 0%)
+          const maxDragDistance = SLIDER_TRACK_HEIGHT - HANDLE_HEIGHT;
+          let newBrightness = 100 - ((relativeY - HANDLE_HEIGHT / 2) / maxDragDistance) * 100;
+          newBrightness = Math.max(0, Math.min(100, Math.round(newBrightness)));
+          
+          setBrightness(newBrightness);
+          sendStateToServer({ brightness: newBrightness, color: selectedColor });
+        });
       },
 
       onPanResponderRelease: () => {
-        // 最终确认一次
+        // Final confirmation
         sendStateToServer({ brightness, color: selectedColor });
       }
     })
@@ -153,12 +163,6 @@ export default function LightAdjust() {
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require('../assets/general_images/background_adj.png')}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
-      />
-
       <View style={styles.header}>
         <Image
           source={require('../assets/icons/light_adj.png')}
@@ -170,7 +174,10 @@ export default function LightAdjust() {
         </Text>
       </View>
 
-      <View style={[styles.sliderContainer, { height: SLIDER_TRACK_HEIGHT }]}>
+      <View 
+        ref={sliderRef}
+        style={[styles.sliderContainer, { height: SLIDER_TRACK_HEIGHT }]}
+      >
         {/* fill 区域：颜色响应选择 */}
         <View
           style={{
@@ -183,12 +190,28 @@ export default function LightAdjust() {
           }}
         />
 
+        {/* Invisible touch target (always full size for dragging) */}
         <View
-          style={[styles.handle, { top: handleTop, backgroundColor: selectedColor }]}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: -20,
+            right: -20,
+            height: SLIDER_TRACK_HEIGHT,
+          }}
+          pointerEvents="auto"
           {...panResponder.panHandlers}
-        >
-          <View style={{ width: 20, height: 4, backgroundColor: '#ddd', borderRadius: 2 }} />
-        </View>
+        />
+
+        {/* Visible handle (only shown when showHandle is true) */}
+        {showHandle && (
+          <View
+            style={[styles.handle, { top: handleTop, backgroundColor: selectedColor }]}
+            pointerEvents="none"
+          >
+            <View style={{ width: 20, height: 4, backgroundColor: '#ddd', borderRadius: 2 }} />
+          </View>
+        )}
       </View>
 
       <View style={styles.colorOptions}>
@@ -204,6 +227,13 @@ export default function LightAdjust() {
           />
         ))}
       </View>
+
+      {/* Close button at bottom */}
+      {onClose && (
+        <TouchableOpacity onPress={onClose} style={styles.closeButtonBottom}>
+          <Text style={styles.closeButtonText}>✕</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -213,8 +243,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#05011C',
+    //backgroundColor: '#05011C',
     padding: 20,
+  },
+  closeButtonBottom: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 30,
+    alignSelf: 'center',
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 36,
+    fontWeight: 'bold',
   },
   header: {
     alignItems: 'center',
@@ -229,7 +274,7 @@ const styles = StyleSheet.create({
   sliderContainer: {
     width: SLIDER_WIDTH,
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 20,
+    borderRadius: 30,
     overflow: 'hidden',
     position: 'relative',
   },

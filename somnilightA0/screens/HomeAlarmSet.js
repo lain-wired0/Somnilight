@@ -48,15 +48,10 @@ export function HomeAlarmSetScreen({navigation}) {
             try {
                 const storedPresets = await loadPresetsFromStorage();
                 if (storedPresets && storedPresets.length > 0) {
-                    // Convert stored presets to preset options format
-                    // Map preset objects to { id, label } format
-                    const options = storedPresets.map((preset) => ({
-                        id: preset.id,
-                        name: preset.label,
-                        cover: preset.cover, // Optional: for future use
-                    }));
-                    setPresetOptions(options);
-                    console.log('[HomeAlarmSet] Loaded', options.length, 'presets from storage');
+                    // Use presets directly with their original structure (id, label, cover)
+                    console.log('[HomeAlarmSet] Loaded presets:', storedPresets);
+                    setPresetOptions(storedPresets);
+                    console.log('[HomeAlarmSet] Loaded', storedPresets.length, 'presets from storage');
                 } else {
                     console.log('[HomeAlarmSet] No presets found in storage, using empty array');
                     setPresetOptions([]);
@@ -71,7 +66,7 @@ export function HomeAlarmSetScreen({navigation}) {
         loadPresetsFromLocalStorage();
     }, []);
 
-    const presetNames = presetOptions.map((p) => p.name);
+    const presetNames = presetOptions.map((p) => p.label);
     const initialPreset = presetNames[0] || 'Morning_1';
     const [presetId, setPresetId] = useState(initialPreset);
     const [activeDays, setActiveDays] = useState(["Mon","Tue","Wed","Thu","Fri"]);
@@ -614,7 +609,7 @@ export function HomeAlarmSetScreen({navigation}) {
                             <PresetCell 
                                 baseIcon={require('../assets/icons/AlarmSetPreset.png')} 
                                 title={'Preset'}
-                                value={presetId || (presetOptions[0] || '')}
+                                value={presetId || (presetOptions[0]?.label || '')}
                                 options={presetOptions}
                                 onSelect={(val) => setPresetId(val)}
                                 navigation={navigation}
@@ -1171,7 +1166,7 @@ const PresetPickerPanel = ({ onClose, options = [], initialValue = '', navigatio
     const bgcolor = '#0C112E';
     const optionNames = Array.isArray(options)
         ? options
-            .map((item) => (typeof item === 'string' ? item : item?.name))
+            .map((item) => (typeof item === 'string' ? item : item?.label))
             .filter(Boolean)
         : [];
     const hasOptions = optionNames.length > 0;
@@ -1184,7 +1179,7 @@ const PresetPickerPanel = ({ onClose, options = [], initialValue = '', navigatio
     useEffect(() => {
         const names = Array.isArray(options)
             ? options
-                .map((item) => (typeof item === 'string' ? item : item?.name))
+                .map((item) => (typeof item === 'string' ? item : item?.label))
                 .filter(Boolean)
             : [];
         const nextHasOptions = names.length > 0;
@@ -1264,11 +1259,13 @@ const PresetCell = ({baseIcon, title, value, options = [], onSelect, navigation}
     const [modalVisible, setModalVisible] = useState(false);
     const optionNames = Array.isArray(options)
         ? options
-            .map((item) => (typeof item === 'string' ? item : item?.name))
+            .map((item) => (typeof item === 'string' ? item : item?.label))
             .filter(Boolean)
         : [];
     const hasOptions = optionNames.length > 0;
     const displayValue = hasOptions ? (value || optionNames[0]) : 'No presets';
+    
+    console.log('[PresetCell] value:', value, 'options:', options, 'displayValue:', displayValue);
 
     // Get cover image for selected preset
     const selectedIcon = (() => {
@@ -1276,8 +1273,8 @@ const PresetCell = ({baseIcon, title, value, options = [], onSelect, navigation}
         // Try to find preset by name in options and get its cover image
         if (Array.isArray(options)) {
             const match = options.find((item) => {
-                const itemName = typeof item === 'string' ? item : item?.name;
-                return itemName === value;
+                const itemLabel = typeof item === 'string' ? item : item?.label;
+                return itemLabel === value;
             });
             // Return the cover image if found
             if (match && match.cover) {

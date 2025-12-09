@@ -3,13 +3,13 @@ import { View, Text, Image, PanResponder, StyleSheet, TouchableOpacity } from 'r
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { textStyles, ele } from '../styles';
 
-const SLIDER_WIDTH = 80;
-const SLIDER_TRACK_HEIGHT = 240;
+const SLIDER_WIDTH = 120;
+const SLIDER_TRACK_HEIGHT = 320;
 const HANDLE_HEIGHT = 30;
 
 const SERVER_URL = 'http://150.158.158.233:1880';
 
-export default function VolumeAdjust() {
+export default function VolumeAdjust({ onClose, showHandle = false }) {
   const [volume, setVolume] = useState(60);
   const [musicIndex, setMusicIndex] = useState(0);
 
@@ -99,27 +99,37 @@ export default function VolumeAdjust() {
   };
 
   // slider
+  const sliderRef = useRef(null);
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
 
-      onPanResponderGrant: () => {
+      onPanResponderGrant: (evt) => {
+        // Store initial touch position for direct manipulation
         startVolumeRef.current = volume;
       },
 
-      onPanResponderMove: (_, gestureState) => {
-        const maxDrag = SLIDER_TRACK_HEIGHT - HANDLE_HEIGHT;
-        const deltaPercent = (gestureState.dy / maxDrag) * 100;
-
-        let newVolume = startVolumeRef.current - deltaPercent;
-        newVolume = Math.max(0, Math.min(100, Math.round(newVolume)));
-
-        setVolume(newVolume);
-        sendVolumeToServer(newVolume);
+      onPanResponderMove: (evt, gestureState) => {
+        if (!sliderRef.current) return;
+        
+        // Measure slider position on screen
+        sliderRef.current.measure((x, y, width, height, pageX, pageY) => {
+          const touchY = evt.nativeEvent.pageY;
+          const relativeY = touchY - pageY;
+          
+          // Calculate volume from touch position (inverted: top = 100%, bottom = 0%)
+          const maxDragDistance = SLIDER_TRACK_HEIGHT - HANDLE_HEIGHT;
+          let newVolume = 100 - ((relativeY - HANDLE_HEIGHT / 2) / maxDragDistance) * 100;
+          newVolume = Math.max(0, Math.min(100, Math.round(newVolume)));
+          
+          setVolume(newVolume);
+          sendVolumeToServer(newVolume);
+        });
       },
 
       onPanResponderRelease: () => {
+        // Final confirmation
         sendVolumeToServer(volume);
       },
     })
@@ -130,12 +140,6 @@ export default function VolumeAdjust() {
 
   return (
     <View style={styles.container}>
-      <Image
-        source={require('../assets/general_images/background_adj.png')}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
-      />
-
       <View style={styles.header}>
         <Image
           source={require('../assets/icons/Volumn_adj.png')}
@@ -145,7 +149,10 @@ export default function VolumeAdjust() {
         <Text style={styles.percentageText}>Volume {volume}%</Text>
       </View>
 
-      <View style={[styles.sliderContainer, { height: SLIDER_TRACK_HEIGHT }]}>
+      <View 
+        ref={sliderRef}
+        style={[styles.sliderContainer, { height: SLIDER_TRACK_HEIGHT }]}
+      >
         <View style={{
           position: 'absolute',
           bottom: 0,
@@ -154,12 +161,29 @@ export default function VolumeAdjust() {
           height: fillHeight,
           backgroundColor: 'rgba(226,226,226,0.45)'
         }}/>
+
+        {/* Invisible touch target (always full size for dragging) */}
         <View
-          style={[styles.handle, { top: handleTop }]}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: -20,
+            right: -20,
+            height: SLIDER_TRACK_HEIGHT,
+          }}
+          pointerEvents="auto"
           {...panResponder.panHandlers}
-        >
-          <View style={{ width: 20, height: 4, backgroundColor: '#ddd', borderRadius: 2 }} />
-        </View>
+        />
+
+        {/* Visible handle (only shown when showHandle is true) */}
+        {showHandle && (
+          <View
+            style={[styles.handle, { top: handleTop }]}
+            pointerEvents="none"
+          >
+            <View style={{ width: 20, height: 4, backgroundColor: '#ddd', borderRadius: 2 }} />
+          </View>
+        )}
       </View>
 
       {/* Music Buttons */}
@@ -177,6 +201,13 @@ export default function VolumeAdjust() {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Close button at bottom */}
+      {onClose && (
+        <TouchableOpacity onPress={onClose} style={styles.closeButtonBottom}>
+          <Text style={styles.closeButtonText}>✕</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -184,14 +215,30 @@ export default function VolumeAdjust() {
 const styles = StyleSheet.create({
   container: {
     flex: 1, justifyContent: 'center',
-    alignItems: 'center', backgroundColor: '#05011C'
+    alignItems: 'center', 
+    //backgroundColor: '#05011C'
+  },
+  closeButtonBottom: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 30,
+    alignSelf: 'center',
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 36,
+    fontWeight: 'bold',
   },
   header: { alignItems: 'center', marginBottom: 40 },
   percentageText: { fontSize: 18, color: 'white', marginTop: 15 },
   sliderContainer: {
     width: SLIDER_WIDTH,
     backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 20,
+    borderRadius: 30,
     overflow: 'hidden',
     position: 'relative',
   },
