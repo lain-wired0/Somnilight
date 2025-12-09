@@ -1,4 +1,4 @@
-import React , {useState, useEffect} from 'react';
+import React , {useState, useEffect, useRef} from 'react';
 import { 
     Image, ImageBackground,Text, View, StyleSheet, 
     TouchableOpacity, TouchableHighlight,
@@ -7,12 +7,13 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Picker} from '@react-native-picker/picker';
 import Modal from 'react-native-modal';
+import { Ionicons } from '@expo/vector-icons';
 import { deviceHeight, deviceWidth } from '../App';
 import { colors, containers, Icon12text11, textStyles } from '../styles';
 import CircularAlarmSetPanel from './CircularAlarmSetPanel';
-import presetsData from '../presets.json';
 import Svg, { Path } from 'react-native-svg';
 import { syncAlarmToServerDebounced, flushPendingSync } from '../utils/ServerSync';
+import { loadPresetsFromStorage } from '../utils/PresetStorage';
 
 const PRESET_ICONS = {
     preJade: require('../assets/icons/preJade.png'),
@@ -36,16 +37,40 @@ export function HomeAlarmSetScreen({navigation}) {
     const [sunriseMin, setSunriseMin] = useState(30);
     const [wakeupHour, setWakeupHour] = useState(7);
     const [wakeupMin, setWakeupMin] = useState(0);
-    const presetOptionsRaw = presetsData?.presets || presetsData || [];
-    const presetOptions = Array.isArray(presetOptionsRaw)
-        ? presetOptionsRaw
-            .map((item) => {
-                if (typeof item === 'string') return { name: item };
-                if (item && typeof item === 'object') return { name: item.name, icon: item.icon };
-                return null;
-            })
-            .filter((p) => p && p.name)
-        : [];
+    
+    // Load presets from PresetStorage (previously from presets.json)
+    const [presetOptions, setPresetOptions] = useState([]);
+    const [presetsLoaded, setPresetsLoaded] = useState(false);
+    
+    // Load presets on mount
+    useEffect(() => {
+        const loadPresetsFromLocalStorage = async () => {
+            try {
+                const storedPresets = await loadPresetsFromStorage();
+                if (storedPresets && storedPresets.length > 0) {
+                    // Convert stored presets to preset options format
+                    // Map preset objects to { id, label } format
+                    const options = storedPresets.map((preset) => ({
+                        id: preset.id,
+                        name: preset.label,
+                        cover: preset.cover, // Optional: for future use
+                    }));
+                    setPresetOptions(options);
+                    console.log('[HomeAlarmSet] Loaded', options.length, 'presets from storage');
+                } else {
+                    console.log('[HomeAlarmSet] No presets found in storage, using empty array');
+                    setPresetOptions([]);
+                }
+                setPresetsLoaded(true);
+            } catch (error) {
+                console.error('[HomeAlarmSet] Error loading presets:', error);
+                setPresetsLoaded(true);
+            }
+        };
+
+        loadPresetsFromLocalStorage();
+    }, []);
+
     const presetNames = presetOptions.map((p) => p.name);
     const initialPreset = presetNames[0] || 'Morning_1';
     const [presetId, setPresetId] = useState(initialPreset);
@@ -592,6 +617,7 @@ export function HomeAlarmSetScreen({navigation}) {
                                 value={presetId || (presetOptions[0] || '')}
                                 options={presetOptions}
                                 onSelect={(val) => setPresetId(val)}
+                                navigation={navigation}
                             />
                         </View>
                         <View style = {{...RoundBlueContainer,alignSelf:'stretch'}}>
@@ -1136,7 +1162,7 @@ const AlarmNameCell = ({icon, title, value, alarmConfig, alarmConfigs, onAlarmCo
 
 
 //PresetPicker
-const PresetPickerPanel = ({ onClose, options = [], initialValue = '' }) => {
+const PresetPickerPanel = ({ onClose, options = [], initialValue = '', navigation }) => {
     const titleFontSize = 14;
     const barWidth = 200;
     const padding = 20;
@@ -1180,8 +1206,26 @@ const PresetPickerPanel = ({ onClose, options = [], initialValue = '' }) => {
                         borderWidth:1,
                         borderColor:'#353951'
                         }}>
-                <View style={{alignItems:'center', justifyContent:'center', marginBottom:16}}>
-                    <Text style={{...textStyles.semibold15, fontSize:titleFontSize, color:'white'}}>Select Preset</Text>
+                <View style={{flexDirection:'row', alignItems:'center', justifyContent:'center', marginBottom:16}}>
+                    <Text style={{...textStyles.semibold15, fontSize:titleFontSize, color:'white', flex:1, textAlign:'center', paddingLeft:32}}>Select Preset</Text>
+                    {navigation && (
+                        <TouchableOpacity
+                            style={{
+                                width:32,
+                                height:32,
+                                borderRadius:16,
+                                backgroundColor:'rgba(255,255,255,0.1)',
+                                justifyContent:'center',
+                                alignItems:'center',
+                            }}
+                            onPress={() => {
+                                navigation.navigate('Preset');
+                                onClose(val);
+                            }}
+                        >
+                            <Ionicons name="create" size={18} color="#7A5AF8" />
+                        </TouchableOpacity>
+                    )}
                 </View>
 
                 <View style = {{alignItems:'center',justifyContent:'center',flexDirection:'row'}}>
@@ -1216,7 +1260,7 @@ const PresetPickerPanel = ({ onClose, options = [], initialValue = '' }) => {
     )
 }
 
-const PresetCell = ({baseIcon, title, value, options = [], onSelect}) => {
+const PresetCell = ({baseIcon, title, value, options = [], onSelect, navigation}) => {
     const [modalVisible, setModalVisible] = useState(false);
     const optionNames = Array.isArray(options)
         ? options
@@ -1226,17 +1270,25 @@ const PresetCell = ({baseIcon, title, value, options = [], onSelect}) => {
     const hasOptions = optionNames.length > 0;
     const displayValue = hasOptions ? (value || optionNames[0]) : 'No presets';
 
+    // Get cover image for selected preset
     const selectedIcon = (() => {
-        if (!value) return null;
-        if (PRESET_ICONS_BY_NAME[value]) return PRESET_ICONS_BY_NAME[value];
-        const match = Array.isArray(options)
-            ? options.find((item) => (typeof item === 'string' ? item === value : item?.name === value))
-            : null;
-        if (match?.icon && PRESET_ICONS[match.icon]) return PRESET_ICONS[match.icon];
-        return null;
+        if (!value) return baseIcon;
+        // Try to find preset by name in options and get its cover image
+        if (Array.isArray(options)) {
+            const match = options.find((item) => {
+                const itemName = typeof item === 'string' ? item : item?.name;
+                return itemName === value;
+            });
+            // Return the cover image if found
+            if (match && match.cover) {
+                return match.cover;
+            }
+        }
+        // Fallback to base icon
+        return baseIcon;
     })();
 
-    const cellIcon = selectedIcon || baseIcon;
+    const cellIcon = selectedIcon;
 
     return (
         <TouchableOpacity style = {{padding:10,flexDirection: 'row',justifyContent:'flex-start'}} onPress={() => hasOptions && setModalVisible(true)} disabled={!hasOptions}>
@@ -1265,6 +1317,7 @@ const PresetCell = ({baseIcon, title, value, options = [], onSelect}) => {
                                 <PresetPickerPanel
                                     options={options}
                                     initialValue={value}
+                                    navigation={navigation}
                                     onClose={(val) => {
                                         if (onSelect) onSelect(val);
                                         setModalVisible(false);

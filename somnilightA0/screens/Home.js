@@ -166,13 +166,14 @@ const HomeConfigSlide = ({pass}) => {
                         right:20,
                         top:25,}}/>
 
-                    <View style = {{padding:30}}>
+                    <View style = {{padding:15}}>
                         <Image //pillow
-                            source = {require('../assets/general_images/pillow_legacy.png')}
+                            source = {require('../assets/general_images/productShot.png')}
                             style = {{
                                 alignSelf: 'center',
-                                width:220,
-                                height:150,
+                                top:-8,
+                                width:330,
+                                height:180,
                                 position:'relative',
                             }}/>
                     </View>
@@ -187,11 +188,32 @@ const HomeConfigSlide = ({pass}) => {
 
 
 const DeviceSwitch = ({location}) => {
-    const init = initPower()
-    const [isDeviceOn, setIsDeviceOn] = useState(init);
-    const toggleSwitch = () => 
-        setIsDeviceOn(previousState => !previousState);
-        setPower(isDeviceOn);
+    const [isDeviceOn, setIsDeviceOn] = useState(false); // Start with false, will be updated by useEffect
+    const [powerLoaded, setPowerLoaded] = useState(false); // Track if power state has been loaded
+
+    // Load initial power state from server when component mounts
+    useEffect(() => {
+        const loadPowerState = async () => {
+            try {
+                const powerState = await initPower();
+                setIsDeviceOn(powerState);
+                setPowerLoaded(true);
+                console.log('[DeviceSwitch] Power state loaded from server:', powerState);
+            } catch (error) {
+                console.error('[DeviceSwitch] Error loading power state:', error);
+                setPowerLoaded(true); // Mark as loaded even on error
+            }
+        };
+
+        loadPowerState();
+    }, []);
+
+    const toggleSwitch = () => {
+        const newState = !isDeviceOn;
+        setIsDeviceOn(newState);
+        setPower(newState);
+    };
+
     return (
         <Switch 
             trackColor = {{true: '#8068E9',false:'rgba(61, 43, 142, 1)'}}
@@ -200,16 +222,21 @@ const DeviceSwitch = ({location}) => {
             onValueChange = {toggleSwitch}
             value = {isDeviceOn}
             style= {location}
+            disabled = {!powerLoaded} // Disable switch until power state is loaded
             />
-        
     )
 }
 
 async function initPower() {
-    await fetch('http://somnilight.online:1880/pillow/power')
-        .then(response => response.json())
-
-    return (data.power == 'on' ? true :false)
+    try {
+        const response = await fetch('http://somnilight.online:1880/pillow/power');
+        const data = await response.json();
+        console.log('[initPower] Response:', data);
+        return (data.power === 'on' ? true : false);
+    } catch (error) {
+        console.error('[initPower] Error fetching power state:', error);
+        return false; // Default to off on error
+    }
 }
 
 async function setPower(isOn) {
