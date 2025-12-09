@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,8 +14,10 @@ import {
   TextInput,
   Alert, 
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
+import { savePresetsToStorage, loadPresetsFromStorage, saveActivePresetId, loadActivePresetId } from '../utils/PresetStorage';
 
 import { textStyles } from '../styles';
 import InteractiveArcSlider from './components/InteractiveArcSlider';
@@ -102,12 +104,78 @@ export default function PresetScreen({ navigation }) {
   
   const [activePresetId, setActivePresetId] = useState('morning_1');
 
+  // Hydration guard: track whether data has been loaded from storage
+  const presetsHydratedRef = useRef(false);
   
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingName, setEditingName] = useState('');
 
   
   const [canScroll, setCanScroll] = useState(true);
+
+  // Load presets from storage on component mount
+  useEffect(() => {
+    const loadStoredPresets = async () => {
+      try {
+        // Load presets
+        const storedPresets = await loadPresetsFromStorage();
+        if (storedPresets && storedPresets.length > 0) {
+          setPresets(storedPresets);
+          console.log('[PresetScreen] Loaded presets from storage');
+        }
+
+        // Load active preset ID
+        const storedActiveId = await loadActivePresetId();
+        if (storedActiveId) {
+          setActivePresetId(storedActiveId);
+          console.log('[PresetScreen] Loaded active preset ID from storage:', storedActiveId);
+        }
+
+        presetsHydratedRef.current = true;
+      } catch (error) {
+        console.error('[PresetScreen] Error loading presets from storage:', error);
+        presetsHydratedRef.current = true; // Mark as hydrated even on error
+      }
+    };
+
+    loadStoredPresets();
+  }, []);
+
+  // Auto-save presets whenever they change (after hydration)
+  useEffect(() => {
+    if (!presetsHydratedRef.current) {
+      return; // Don't save until we've loaded initial data
+    }
+
+    const savePresets = async () => {
+      try {
+        await savePresetsToStorage(presets);
+        console.log('[PresetScreen] Presets auto-saved');
+      } catch (error) {
+        console.error('[PresetScreen] Error auto-saving presets:', error);
+      }
+    };
+
+    savePresets();
+  }, [presets]);
+
+  // Auto-save active preset ID whenever it changes (after hydration)
+  useEffect(() => {
+    if (!presetsHydratedRef.current) {
+      return; // Don't save until we've loaded initial data
+    }
+
+    const saveActiveId = async () => {
+      try {
+        await saveActivePresetId(activePresetId);
+        console.log('[PresetScreen] Active preset ID auto-saved');
+      } catch (error) {
+        console.error('[PresetScreen] Error auto-saving active preset ID:', error);
+      }
+    };
+
+    saveActiveId();
+  }, [activePresetId]);
 
   const activePreset =
     presets.find(p => p.id === activePresetId) || presets[0];
