@@ -229,7 +229,6 @@ async function setPower(isOn) {
 }
 
 const HomeControlPanel = ({pass}) => {
-    const [selectedPreset, setSelectedPreset] = useState('jade');
 
     return (
         <BlurView 
@@ -259,94 +258,38 @@ const HomeControlPanel = ({pass}) => {
 
                 </View>                                             
             </View>
-                <View style={{ ...containers.violetDarkC20, flex: 3, flexDirection: 'row' }}>
-                <View style={{ ...containers.CenterAJ, flex: 1 }}>
-                    <TouchableOpacity
-                    style={{ ...containers.CenterAJ, flex: 1 }}
-                    onPress={() => pass.navigation.navigate('Preset')}
-                    activeOpacity={0.8}
-                    >
-                    <Text style={{ ...textStyles.medium16 }}>Presets</Text>
-                    </TouchableOpacity>
+            <View style = {{...containers.violetDarkC20,flex:3,flexDirection:'row'}}>
+                <View style = {{...containers.CenterAJ,flex:1,}}>
+                    <Text style ={{...textStyles.medium16,}}>Presets</Text>
                 </View>
-
-                {/* 右侧：三个头像 + Add，仅在首页切换预设，不跳转 */}
-                <View style={{ ...containers.CenterAJ, flex: 2 }}>
-                    <View
-                    style={{
-                        alignItems: 'center',
-                        flexDirection: 'row',
-                        right: 5,
-                    }}
-                    >
-                    {/* Jade */}
-                    <TouchableOpacity
-                        onPress={() => setSelectedPreset('jade')}
-                        activeOpacity={0.9}
-                    >
-                        <Image
-                        source={require('../assets/general_images/preJade.png')}
-                        style={[
-                            containers.presetButton,
-                            selectedPreset === 'jade' && {
-                            borderWidth: 2,
-                            borderColor: '#FFFFFF',
-                            },
-                        ]}
-                        />
-                    </TouchableOpacity>
-
-                    {/* Mist */}
-                    <TouchableOpacity
-                        onPress={() => setSelectedPreset('mist')}
-                        activeOpacity={0.9}
-                    >
-                        <Image
-                        source={require('../assets/general_images/preMist.png')}
-                        style={[
-                            containers.presetButton,
-                            selectedPreset === 'mist' && {
-                            borderWidth: 2,
-                            borderColor: '#FFFFFF',
-                            },
-                        ]}
-                        />
-                    </TouchableOpacity>
-
-                    {/* Cloud */}
-                    <TouchableOpacity
-                        onPress={() => setSelectedPreset('cloud')}
-                        activeOpacity={0.9}
-                    >
-                        <Image
-                        source={require('../assets/general_images/preCloud.png')}
-                        style={[
-                            containers.presetButton,
-                            selectedPreset === 'cloud' && {
-                            borderWidth: 2,
-                            borderColor: '#FFFFFF',
-                            },
-                        ]}
-                        />
-                    </TouchableOpacity>
-
-                    {/* 加号：这里我让它直接跳到 Preset 页面，也可以改成别的逻辑 */}
-                    <TouchableOpacity
-                        onPress={() => pass.navigation.navigate('Preset')}
-                        activeOpacity={0.9}
-                    >
-                        <View
-                        style={{
-                            ...containers.presetButton,
-                            backgroundColor: '#4E3692',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                        >
-                        <Image source={require('../assets/icons/plus.png')} />
-                        </View>
-                    </TouchableOpacity>
+                <View style = {{...containers.CenterAJ,flex:2}}>
+                    <View style = {{
+                            alignItems:'center',
+                            flexDirection:'row',
+                            right:5,}}>
+                        <TouchableOpacity>
+                            <Image source={require('../assets/general_images/preJade.png')}
+                                style = {containers.presetButton}/>
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                            <Image source={require('../assets/general_images/preMist.png')}
+                                style = {containers.presetButton}/>
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                            <Image source={require('../assets/general_images/preCloud.png')}
+                                style = {containers.presetButton}/>
+                        </TouchableOpacity>
+                        <TouchableOpacity>
+                            <View style = {{
+                                ...containers.presetButton,
+                                backgroundColor:"#4E3692",
+                                alignItems:'center',
+                                justifyContent:'center',}}>
+                                <Image source={require('../assets/icons/plus.png')}/>
+                            </View>
+                        </TouchableOpacity>
                     </View>
+                    
                 </View>
             </View>
         </BlurView>
