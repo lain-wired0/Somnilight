@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Image, ImageBackground, Text, View, TouchableOpacity, StyleSheet, Switch, Button } from 'react-native';
+import { Image, ImageBackground, Text, View, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Switch, Button, Modal, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
@@ -30,6 +30,9 @@ import { Stacks } from '../App.js';
 //Local Screens
 import { HomeAlarmSetScreen } from './HomeAlarmSet.js';
 import LightAdjust from './LightAdjust.js';
+import VolumnAdjust from './VolumnAdjust.js';
+import LightIntensitySlider from './components/LightIntensitySlider.js';
+import VolumeIntensitySlider from './components/VolumeIntensitySlider.js';
 import { HeaderBackground } from '@react-navigation/elements';
 
 let user_name = 'Mushroom'
@@ -51,13 +54,15 @@ export function HomeStack() {
             })}
         >
             <Stacks.Screen name = "Home" component = { HomeScreen }/>
-            <Stacks.Screen name = "LightAdjust" component={ LightAdjust }/>
 
         </Stacks.Navigator>
     )
 }
 
 const HomeScreen = (pass = {navigation, route}) => {
+    const [lightAdjustVisible, setLightAdjustVisible] = useState(false);
+    const [volumeAdjustVisible, setVolumeAdjustVisible] = useState(false);
+
     return (
     <View style = {{
         backgroundColor:'#05011C',
@@ -93,8 +98,14 @@ const HomeScreen = (pass = {navigation, route}) => {
             <View style = {{
                 ...StyleSheet.absoluteFill
             }}>
-                <HomeConfigSlide pass = {pass}/>
+                <HomeConfigSlide pass = {{...pass, lightAdjustVisible, setLightAdjustVisible, volumeAdjustVisible, setVolumeAdjustVisible}}/>
             </View>
+            
+            {/* Light Adjust Modal */}
+            <LightAdjustModal visible={lightAdjustVisible} onClose={() => setLightAdjustVisible(false)} />
+            
+            {/* Volume Adjust Modal */}
+            <VolumeAdjustModal visible={volumeAdjustVisible} onClose={() => setVolumeAdjustVisible(false)} />
             
         </ImageBackground>
     </View>
@@ -123,7 +134,8 @@ const HomeConfigSlide = ({pass}) => {
                 snapPoints={["40%","90%"]}
                 onChange={handleSheetChanges}
                 backgroundComponent = { BlurSlideBG }
-                handleStyle = {{height:20,}}
+                enableContentPanningGesture={false}
+                handleStyle = {{height:25, paddingTop: 13,}}
                 handleIndicatorStyle = {{
                     height:8,
                     width:54,
@@ -239,6 +251,80 @@ async function initPower() {
     }
 }
 
+// Light Adjust Modal Component
+const LightAdjustModal = ({ visible, onClose }) => {
+    if (!visible) return null;
+    
+    return (
+        <Modal
+            transparent={true}
+            visible={visible}
+            onRequestClose={onClose}
+            animationType="fade"
+            duration={200}
+        >
+            <TouchableWithoutFeedback onPress={onClose}>
+                <View style={{ flex: 1 }}>
+                    {/* Blur background */}
+                    <BlurView tint="dark" intensity={80} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+                    {/* Gradient overlay */}
+                    <View style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none' }}>
+                        <LinearGradient 
+                            colors={['rgba(140, 117, 241, 0.50)' , 'rgba(24, 15, 40, 0.50)', 'rgba(0, 0, 0, 0.50)']}
+                            locations={[0, 0.3, 1]}
+                            style={{ width: '100%', height: '100%' }}
+                            start={{x: 1, y: 0.2}}
+                        />
+                    </View>
+                    {/* Content - box-none allows background tap to pass through empty areas */}
+                    <TouchableWithoutFeedback onPress={() => {}}>
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', pointerEvents: 'box-none' }}>
+                            <LightAdjust onClose={onClose} />
+                        </View>
+                    </TouchableWithoutFeedback>
+                </View>
+            </TouchableWithoutFeedback>
+        </Modal>
+    );
+};
+
+// Volume Adjust Modal Component
+const VolumeAdjustModal = ({ visible, onClose }) => {
+    if (!visible) return null;
+    
+    return (
+        <Modal
+            transparent={true}
+            visible={visible}
+            onRequestClose={onClose}
+            animationType="fade"
+            duration={200}
+        >
+            <TouchableWithoutFeedback onPress={onClose}>
+                <View style={{ flex: 1 }}>
+                    {/* Blur background */}
+                    <BlurView tint="dark" intensity={80} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} />
+                    {/* Gradient overlay */}
+                    <View style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none' }}>
+                        <LinearGradient 
+                            colors={['rgba(140, 117, 241, 0.50)' , 'rgba(24, 15, 40, 0.50)', 'rgba(0, 0, 0, 0.50)']}
+                            locations={[0, 0.3, 1]}
+                            style={{ width: '100%', height: '100%' }}
+                            start={{x: 1, y: 0.2}}
+                        />
+                    </View>
+                    {/* Content - box-none allows background tap to pass through empty areas */}
+                    <TouchableWithoutFeedback onPress={() => {}}>
+                        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', pointerEvents: 'box-none' }}>
+                            <VolumnAdjust onClose={onClose} />
+                        </View>
+                    </TouchableWithoutFeedback>
+                </View>
+            </TouchableWithoutFeedback>
+        </Modal>
+    );
+};
+
 async function setPower(isOn) {
     const res = await fetch('http://somnilight.online:1880/pillow/power',{
         method: "POST",
@@ -257,6 +343,16 @@ async function setPower(isOn) {
 
 const HomeControlPanel = ({pass}) => {
     const [selectedPreset, setSelectedPreset] = useState('jade');
+    const [panelIndex, setPanelIndex] = useState(0);
+    const [containerWidth, setContainerWidth] = useState(0);
+    const scrollViewRef = useRef(null);
+
+    const handleScroll = (event) => {
+        const offsetX = event.nativeEvent.contentOffset.x;
+        const width = event.nativeEvent.layoutMeasurement.width;
+        const index = Math.round(offsetX / width);
+        setPanelIndex(index);
+    };
 
     return (
         <BlurView 
@@ -271,20 +367,60 @@ const HomeControlPanel = ({pass}) => {
                     }}>
             <Text style = {TitleInRoundView}>Control</Text>
             <View style = {{flexDirection:'row', height:100,flex:7}}>
-                <View style = {{...containers.violetDarkC20,flex:2}}>
+                <View 
+                    style = {{...containers.violetDarkC20,flex:2, overflow: 'hidden'}}
+                    onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+                >
+                    <ScrollView
+                        ref={scrollViewRef}
+                        horizontal
+                        pagingEnabled
+                        showsHorizontalScrollIndicator={false}
+                        onMomentumScrollEnd={handleScroll}
+                        scrollEventThrottle={16}
+                        style={{ flex: 1 }}
+                    >
+                        {/* Panel 1: HomeAlarmSetPanel */}
+                        <View style={{ width: containerWidth }}>
+                            <HomeAlarmSetPanel pass={pass}/>
+                        </View>
 
-                    <HomeAlarmSetPanel pass={pass}/>
-
+                        {/* Panel 2: Sleep Mode Panel */}
+                        <View style={{ width: containerWidth, justifyContent: 'center', alignItems: 'center' }}>
+                            <Text style={{...textStyles.medium16, color: 'white'}}>Sleep Mode</Text>
+                        </View>
+                    </ScrollView>
+                    
+                    {/* Pagination Dots */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', paddingVertical: 5, position: 'absolute', bottom: 5, alignSelf: 'center' }}>
+                        {[0, 1].map((index) => (
+                            <View
+                                key={index}
+                                style={{
+                                    width: 6,
+                                    height: 6,
+                                    borderRadius: 3,
+                                    backgroundColor: panelIndex === index ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.3)',
+                                    marginHorizontal: 3,
+                                }}
+                            />
+                        ))}
+                    </View>
                 </View>
-                <View style = {{...containers.violetDarkC20,flex:1}}>
-                    <TouchableOpacity style = {{flex:1}} 
-                        onPress={() => pass.navigation.navigate('LightAdjust')}>
-
-                    </TouchableOpacity>
-                </View>                  
-                <View style = {{...containers.violetDarkC20,flex:1}}>
-
-                </View>                                             
+                <TouchableOpacity 
+                    style = {{...containers.violetDarkC20,flex:1}}
+                    onPress={() => pass.setLightAdjustVisible(true)}
+                    activeOpacity={0.8}
+                >
+                    <LightIntensitySlider />
+                </TouchableOpacity>                  
+                <TouchableOpacity 
+                    style = {{...containers.violetDarkC20,flex:1}}
+                    onPress={() => pass.setVolumeAdjustVisible(true)}
+                    activeOpacity={0.8}
+                >
+                    <VolumeIntensitySlider />
+                </TouchableOpacity>                                             
             </View>
                 <View style={{ ...containers.violetDarkC20, flex: 3, flexDirection: 'row' }}>
                 <View style={{ ...containers.CenterAJ, flex: 1 }}>
