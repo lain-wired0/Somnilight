@@ -22,6 +22,7 @@ import { HomeScreen, HomeStack } from './screens/Home';
 import { StatsScreen } from './screens/Stats';
 import { MyinfoScreen } from './screens/Myinfo';
 import { HoverEffect } from 'react-native-gesture-handler';
+import PresetScreen from './screens/Preset';
 
 const Tabs = createBottomTabNavigator();
 const Stacks = createStackNavigator();
@@ -34,11 +35,33 @@ let InactiveColor = '#908EA7'
 let ActiveColor = '#ffffffff'
 
 
+/*
 export default function App() {
   return (
     <NavigationContainer>
       <RootTabs />
     </NavigationContainer>
+  );
+}
+*/
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <RootStackNavigator />
+      <StatusBar style="light" />
+    </NavigationContainer>
+  );
+}
+
+
+function RootStackNavigator() {
+  return (
+    <Stacks.Navigator screenOptions={{ headerShown: false }}>
+      <Stacks.Screen name="MainTabs" component={RootTabs} />
+
+      <Stacks.Screen name="Preset" component={PresetScreen} />
+    </Stacks.Navigator>
   );
 }
 
@@ -88,3 +111,5 @@ function RootTabs() {
 const deviceWidth = 393
 const deviceHeight = 852
 export { deviceHeight, deviceWidth }
+
+
