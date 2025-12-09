@@ -3,69 +3,62 @@ import { View, Text, TouchableOpacity, Image } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { styles } from './StatsStyles';
 
-// --------- 静态模拟数据（单位：分钟）---------
-// 深睡 / 浅睡 / REM / 清醒，合起来是当天总睡眠时长
+// --- Mock weekly sleep data (minutes) ---
 const weeklySleepData = [
-  { day: 'Sun', deep: 80,  light: 220, rem: 50,  awake: 20 }, // 6h10m
-  { day: 'Mon', deep: 90,  light: 260, rem: 70,  awake: 25 }, // 7h25m
-  { day: 'Tue', deep: 60,  light: 180, rem: 50,  awake: 15 }, // 5h05m
-  { day: 'Wed', deep: 70,  light: 210, rem: 60,  awake: 20 }, // 6h00m
-  { day: 'Thu', deep: 50,  light: 150, rem: 40,  awake: 15 }, // 4h15m
-  { day: 'Fri', deep: 110, light: 260, rem: 80,  awake: 25 }, // 7h55m
-  { day: 'Sat', deep: 95,  light: 230, rem: 70,  awake: 20 }, // 6h55m
+  { day: 'Sun', deep: 80, light: 220, rem: 50, awake: 20 }, 
+  { day: 'Mon', deep: 90, light: 260, rem: 70, awake: 25 }, 
+  { day: 'Tue', deep: 60, light: 180, rem: 50, awake: 15 }, 
+  { day: 'Wed', deep: 70, light: 210, rem: 60, awake: 20 }, 
+  { day: 'Thu', deep: 50, light: 150, rem: 40, awake: 15 }, 
+  { day: 'Fri', deep: 110, light: 260, rem: 80, awake: 25 }, 
+  { day: 'Sat', deep: 95, light: 230, rem: 70, awake: 20 }, 
 ];
 
-// --------- 静态心率范围模拟数据（单位：bpm）---------
-// 每天的最小 / 最大心率，用来画周视图的心率范围柱状图
+// --- Mock weekly heart rate data (bpm) ---
 const weeklyHeartRateData = [
-  { day: 'Sun', min: 58, max: 130 },
-  { day: 'Mon', min: 60, max: 120 },
-  { day: 'Tue', min: 55, max: 125 },
-  { day: 'Wed', min: 57, max: 118 },
-  { day: 'Thu', min: 56, max: 135 },
-  { day: 'Fri', min: 59, max: 122 },
-  { day: 'Sat', min: 54, max: 115 },
+  { day: 'Sun', min: 58, max: 90 },
+  { day: 'Mon', min: 50, max: 89 },
+  { day: 'Tue', min: 55, max: 86 },
+  { day: 'Wed', min: 47, max: 98 },
+  { day: 'Thu', min: 46, max: 100 },
+  { day: 'Fri', min: 59, max: 92 },
+  { day: 'Sat', min: 44, max: 103 },
 ];
 
-
-// 颜色：保持之前设定
 const stageColors = {
-  awake: '#FFC850', // 清醒（最上）
-  rem:   '#FF8585', // REM
-  light: '#A86CFA', // 浅睡
-  deep:  '#703EFF', // 深睡（最下）
+  awake: '#FFC850',
+  rem: '#FF8585',
+  light: '#A86CFA',
+  deep: '#703EFF',
 };
 
-// 胶囊从上到下的顺序：清醒 -> REM -> 浅睡 -> 深睡
 const stageOrder = ['awake', 'rem', 'light', 'deep'];
 
-// 统计图高度
 const CHART_HEIGHT = 200;
 
-// 计算某天总睡眠（分钟）
+// --- Sleep chart helpers ---
 const getDayTotal = (item) =>
-  (item.deep || 0) + (item.light || 0) + (item.rem || 0) + (item.awake || 0);
+  (item.deep || 0) +
+  (item.light || 0) +
+  (item.rem || 0) +
+  (item.awake || 0);
 
-// 获取一周起始（周日）
 function getStartOfWeek(date) {
   const d = new Date(date);
-  const day = d.getDay(); // 0 = Sunday
+  const day = d.getDay();
   const diff = d.getDate() - day;
   return new Date(d.setDate(diff));
 }
 
-// 获取“今天 00:00”
 function getTodayStart() {
   const t = new Date();
   return new Date(t.getFullYear(), t.getMonth(), t.getDate());
 }
 
-// 是否同一周
 function isSameWeek(d1, d2) {
   return getStartOfWeek(d1).getTime() === getStartOfWeek(d2).getTime();
 }
 
-// 把分钟拆成 h / m
 function splitToHM(minutes) {
   const total = Math.round(minutes || 0);
   const h = Math.floor(total / 60);
@@ -73,7 +66,6 @@ function splitToHM(minutes) {
   return { h, m };
 }
 
-// 周标题：Dec 1 - 7 / Dec 30 - Jan 5
 function formatWeekTitle(start) {
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
@@ -84,24 +76,20 @@ function formatWeekTitle(start) {
   const endMonthShort = end.toLocaleDateString('en-US', { month: 'short' });
 
   if (startMonthShort === endMonthShort) {
-    // 同一个月：Dec 1 - 7
     return `${startMonthShort} ${start.getDate()} - ${end.getDate()}`;
   }
-  // 不同月：Dec 30 - Jan 5
+
   return `${startMonthShort} ${start.getDate()} - ${endMonthShort} ${end.getDate()}`;
 }
 
-// 第二行：December 6 这种
 function formatSubtitleDate(selectedWeekStart) {
   const todayStart = getTodayStart();
   const currentWeekStart = getStartOfWeek(todayStart);
 
   let dateForLabel;
   if (isSameWeek(selectedWeekStart, currentWeekStart)) {
-    // 当前周：显示今天
     dateForLabel = todayStart;
   } else {
-    // 其他周：取这一周的中间那天（周三）
     dateForLabel = new Date(selectedWeekStart);
     dateForLabel.setDate(selectedWeekStart.getDate() + 3);
   }
@@ -113,15 +101,13 @@ function formatSubtitleDate(selectedWeekStart) {
 }
 
 const WeekView = () => {
-  // 当前选中周：默认本周
+  // --- Week selection state ---
   const [selectedWeekStart, setSelectedWeekStart] = useState(
-    getStartOfWeek(new Date())
+    getStartOfWeek(new Date()),
   );
 
   const todayStart = getTodayStart();
   const currentWeekStart = getStartOfWeek(todayStart);
-
-  // 控制右侧箭头是否可点（不允许超过当前周）
   const canGoNext = selectedWeekStart < currentWeekStart;
 
   const handlePrevWeek = () => {
@@ -134,15 +120,14 @@ const WeekView = () => {
     if (!canGoNext) return;
     const next = new Date(selectedWeekStart);
     next.setDate(next.getDate() + 7);
-    if (next > currentWeekStart) return; // 不跳到当前周之后
+    if (next > currentWeekStart) return;
     setSelectedWeekStart(next);
   };
 
-  // 这一周的总时长 & 最大值（决定比例尺）
+  // --- Sleep averages and chart scale ---
   const dayTotals = weeklySleepData.map(getDayTotal);
-  const maxTotal = Math.max(...dayTotals, 1); // 避免除以 0
+  const maxTotal = Math.max(...dayTotals, 1);
 
-  // 计算平均睡眠时长（只统计“有柱子”的天）
   let sumForAverage = 0;
   let countForAverage = 0;
 
@@ -152,9 +137,9 @@ const WeekView = () => {
 
     const isCurrentWeekShowing = isSameWeek(
       selectedWeekStart,
-      currentWeekStart
+      currentWeekStart,
     );
-    // 当前周：只有“今天之前”的日期有数据；过去周：7 天都有
+
     const hasData =
       !isCurrentWeekShowing || barDate.getTime() < todayStart.getTime();
 
@@ -168,7 +153,6 @@ const WeekView = () => {
   const { h: avgH, m: avgM } = splitToHM(avgMinutes);
   const avgHeight = (avgMinutes / maxTotal) * CHART_HEIGHT;
 
-  // 顶部 Summary 用同一个平均值
   const summaryH = avgH;
   const summaryM = avgM;
 
@@ -177,18 +161,15 @@ const WeekView = () => {
 
   const weekdayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-
-    // --- 心率统计：基于静态周数据 ---
+  // --- Heart rate weekly stats (static data) ---
   const allMinHR = weeklyHeartRateData.map((d) => d.min);
   const allMaxHR = weeklyHeartRateData.map((d) => d.max);
   const heartRangeMin = Math.min(...allMinHR);
   const heartRangeMax = Math.max(...allMaxHR);
 
-  // 模拟静息心率区间
   const restingMin = 56;
   const restingMax = 65;
 
-  // 按 weekdayLabels 顺序对齐心率柱状图的数据
   const heartBars = weekdayLabels.map((label) => {
     return (
       weeklyHeartRateData.find((d) => d.day === label) || { min: 0, max: 0 }
@@ -197,7 +178,7 @@ const WeekView = () => {
 
   return (
     <View>
-      {/* 新日期选择器：<  Dec 1 - 7  > / December 6 */}
+      {/* Week selector */}
       <View
         style={[
           styles.dateStrip,
@@ -256,7 +237,7 @@ const WeekView = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Summary：平均睡眠时长 */}
+      {/* Weekly summary */}
       <View style={styles.weekSummary}>
         <View>
           <Text style={styles.bigTime}>
@@ -272,7 +253,7 @@ const WeekView = () => {
         />
       </View>
 
-      {/* 三列统计 */}
+      {/* Three-column stats */}
       <View style={styles.threeColStats}>
         <View>
           <Text style={styles.statBig}>91%</Text>
@@ -288,7 +269,7 @@ const WeekView = () => {
         </View>
       </View>
 
-      {/* 柱状图 + 平均线 */}
+      {/* Weekly sleep stacked bars + average line */}
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Weekly sleep condition statistics</Text>
 
@@ -299,14 +280,13 @@ const WeekView = () => {
           ]}
         >
           <View style={{ height: CHART_HEIGHT, width: '100%' }}>
-            {/* 平均线 + 同一高度的文字（在线右侧） */}
             {countForAverage > 0 && (
               <>
                 <View
                   style={{
                     position: 'absolute',
                     left: 20,
-                    right: 50, // 与柱子区域同宽
+                    right: 50,
                     top: CHART_HEIGHT - avgHeight,
                     borderTopWidth: 1,
                     borderStyle: 'dashed',
@@ -327,7 +307,6 @@ const WeekView = () => {
               </>
             )}
 
-            {/* 柱子区域：左 20 / 右 50，与平均线、X 轴共用对齐 */}
             <View
               style={{
                 position: 'absolute',
@@ -350,8 +329,9 @@ const WeekView = () => {
 
                   const isCurrentWeekShowing = isSameWeek(
                     selectedWeekStart,
-                    currentWeekStart
+                    currentWeekStart,
                   );
+
                   const hasData =
                     !isCurrentWeekShowing ||
                     barDate.getTime() < todayStart.getTime();
@@ -377,7 +357,7 @@ const WeekView = () => {
                               alignItems: 'center',
                             }}
                           >
-                            {stageOrder.map((stageKey, idx) => {
+                            {stageOrder.map((stageKey, stageIndex) => {
                               const value = item[stageKey];
                               if (!value) return null;
 
@@ -388,11 +368,11 @@ const WeekView = () => {
                                 <View
                                   key={stageKey}
                                   style={{
-                                    width: 10, // 细柱子
+                                    width: 10,
                                     height: Math.max(8, segHeight),
                                     borderRadius: 999,
                                     backgroundColor: stageColors[stageKey],
-                                    marginTop: idx === 0 ? 0 : 4,
+                                    marginTop: stageIndex === 0 ? 0 : 4,
                                   }}
                                 />
                               );
@@ -401,7 +381,6 @@ const WeekView = () => {
                         </View>
                       )}
 
-                      {/* 底部小阴影（只有有数据时显示） */}
                       {hasData && total > 0 && (
                         <View
                           style={{
@@ -421,7 +400,7 @@ const WeekView = () => {
           </View>
         </View>
 
-        {/* X 轴：星期标签 —— 与柱子共用相同左右边距和 7 等分布局 */}
+        {/* X axis labels */}
         <View
           style={[
             styles.xAxis,
@@ -432,14 +411,14 @@ const WeekView = () => {
             },
           ]}
         >
-          {weekdayLabels.map((label, i) => (
-            <View key={i} style={{ flex: 1, alignItems: 'center' }}>
+          {weekdayLabels.map((label, index) => (
+            <View key={index} style={{ flex: 1, alignItems: 'center' }}>
               <Text style={styles.xAxisText}>{label}</Text>
             </View>
           ))}
         </View>
 
-        {/* 底部颜色 Legend：Deep / Light / REM / Awake */}
+        {/* Legend */}
         <View
           style={{
             flexDirection: 'row',
@@ -487,9 +466,7 @@ const WeekView = () => {
                 marginRight: 4,
               }}
             />
-            <Text style={{ fontSize: 11, color: '#ffffffb0' }}>
-              REM sleep
-            </Text>
+            <Text style={{ fontSize: 11, color: '#ffffffb0' }}>REM sleep</Text>
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -507,26 +484,51 @@ const WeekView = () => {
         </View>
       </View>
 
-      {/* Comparison：保留原内容 */}
+      {/* Comparison row */}
       <View style={styles.statsRowCard}>
         <View style={styles.statCol}>
-          <Text style={styles.statUp}>14m ⬆️</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialCommunityIcons
+              name="arrow-up"
+              size={16}
+              color="#4CAF50"
+              style={{ marginRight: 4 }}
+            />
+            <Text style={styles.statUp}>14m</Text>
+          </View>
           <Text style={styles.statDesc}>Compared with last week</Text>
         </View>
+
         <View style={styles.statCol}>
-          <Text style={styles.statNeutral}>98% ⭐️</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialCommunityIcons
+              name="star-outline"
+              size={16}
+              color="#FFC850"
+              style={{ marginRight: 4 }}
+            />
+            <Text style={styles.statNeutral}>98%</Text>
+          </View>
           <Text style={styles.statDesc}>Optimal sleep quality</Text>
         </View>
+
         <View style={styles.statCol}>
-          <Text style={styles.statNeutral}>1h 15m ⭐️</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <MaterialCommunityIcons
+              name="star-outline"
+              size={16}
+              color="#FFC850"
+              style={{ marginRight: 4 }}
+            />
+            <Text style={styles.statNeutral}>1h 15m</Text>
+          </View>
           <Text style={styles.statDesc}>Optimal deep sleep</Text>
         </View>
       </View>
 
-            {/* Heart rate weekly range */}
+      {/* Heart rate weekly range */}
       <Text style={styles.sectionHeaderOutside}>Heart rate</Text>
       <View style={[styles.card, { paddingTop: 18, paddingBottom: 18 }]}>
-        {/* 顶部大号心率范围 */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
           <Text
             style={{
@@ -558,7 +560,6 @@ const WeekView = () => {
           Heart rate range
         </Text>
 
-        {/* 心率柱状图 */}
         <View style={{ height: 120, marginTop: 16, marginBottom: 12 }}>
           <View
             style={{
@@ -569,20 +570,17 @@ const WeekView = () => {
             }}
           >
             {heartBars.map((item, index) => {
-              // 按全周范围归一化高度
               const diff = heartRangeMax - heartRangeMin || 1;
               const minNorm = (item.min - heartRangeMin) / diff;
               const maxNorm = (item.max - heartRangeMin) / diff;
               const totalHeight = 90;
               const barHeight = Math.max(
                 24,
-                (maxNorm - minNorm) * totalHeight
+                (maxNorm - minNorm) * totalHeight,
               );
+
               return (
-                <View
-                  key={index}
-                  style={{ flex: 1, alignItems: 'center' }}
-                >
+                <View key={index} style={{ flex: 1, alignItems: 'center' }}>
                   <View
                     style={{
                       width: 10,
@@ -606,7 +604,7 @@ const WeekView = () => {
           </View>
         </View>
 
-        {/* Heart rate / HRV segmented control（静态 UI） */}
+        {/* Static heart rate / HRV segmented control */}
         <View
           style={{
             flexDirection: 'row',
@@ -657,7 +655,7 @@ const WeekView = () => {
           </View>
         </View>
 
-        {/* 底部两行摘要 */}
+        {/* Heart rate summary */}
         <View style={{ marginTop: 4 }}>
           <View
             style={{
@@ -701,7 +699,6 @@ const WeekView = () => {
           </View>
         </View>
       </View>
-
 
       {/* Sleep advice */}
       <Text style={styles.sectionHeaderOutside}>Sleep advice</Text>

@@ -86,4 +86,4 @@ function RootTabs() {
 
 const deviceWidth = 393
 const deviceHeight = 852
-export { deviceHeight, deviceWidth }
+export { deviceHeight, deviceWidth };

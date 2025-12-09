@@ -1,1 +1,0 @@
-{ stage: 'Awake', duration: 15 },

@@ -1,20 +1,12 @@
-// MonthView.js
-// 说明：月视图页面（月份选择器 + 睡眠质量日历 + 时长趋势 + Highlights）
-// 注意：APP 内文字为英文，代码注释为中文
-
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-
-// 全局统计样式（卡片、标题等）
 import { styles as globalStyles } from './StatsStyles';
-// 复用圆环组件（带动画）
 import ScoreCircle from '../../components/ScoreCircle';
 
 const { width: deviceWidth } = Dimensions.get('window');
-const API_URL = 'http://150.158.158.233:1880';
 
-// 将日期对象格式化为 YYYY-MM-DD，供 Node-RED 接口使用
+// Date helpers
 const formatToISODate = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -22,50 +14,81 @@ const formatToISODate = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-// 根据得分返回一个大致的颜色（简单分三档）
 const getScoreColor = (score) => {
-  if (score >= 85) return '#FFC850'; // Great
-  if (score >= 70) return '#A18CFF'; // Good
-  return '#FF71A0';                  // Poor
+  if (score >= 85) return '#703EFF'; 
+  if (score >= 70) return '#FFC850'; 
+  return '#FF8585'; 
 };
 
+// Mock scores for 2025-11-01 ~ 2025-12-11
+const buildMockScores = () => {
+  const scores = {};
+
+  const addRange = (year, monthIndex, startDay, endDay) => {
+    for (let d = startDay; d <= endDay; d++) {
+      const date = new Date(year, monthIndex, d);
+      const key = formatToISODate(date);
+
+      const mod = d % 3;
+      let score;
+      if (mod === 1) score = 88; // Great
+      else if (mod === 2) score = 78; // Good
+      else score = 64; // Poor
+
+      scores[key] = score;
+    }
+  };
+
+  addRange(2025, 10, 1, 30); // November
+  addRange(2025, 11, 1, 11); // December
+
+  return scores;
+};
+
+const MOCK_SCORES = buildMockScores();
+
+// Allowed months: 2025-11 and 2025-12
+const ALLOW_YEAR = 2025;
+const MIN_MONTH_INDEX = 10; // November
+const MAX_MONTH_INDEX = 11; // December
+
 const MonthView = () => {
-  // 以手机当前日期初始化：本月第一天
+  // Month state (only November / December 2025)
   const [currentMonth, setCurrentMonth] = useState(() => {
     const today = new Date();
-    return new Date(today.getFullYear(), today.getMonth(), 1);
+    if (
+      today.getFullYear() === ALLOW_YEAR &&
+      (today.getMonth() === MIN_MONTH_INDEX || today.getMonth() === MAX_MONTH_INDEX)
+    ) {
+      return new Date(today.getFullYear(), today.getMonth(), 1);
+    }
+    return new Date(ALLOW_YEAR, MAX_MONTH_INDEX, 1);
   });
 
-  // 保存当前月份每一天的睡眠得分：{ 'YYYY-MM-DD': number }
-  const [monthlyScores, setMonthlyScores] = useState({});
+  // Sleep scores (mock)
+  const [monthlyScores] = useState(MOCK_SCORES);
 
-  // ---------- 1) 计算当前月的基本信息 + 日历网格 ----------
+  // Calendar grid and labels for current month
   const { year, monthIndex, monthLabel, calendarWeeks } = useMemo(() => {
     const year = currentMonth.getFullYear();
     const monthIndex = currentMonth.getMonth();
 
-    // 当月总天数
     const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-    // 当月 1 号是星期几（0 = Sunday）
     const firstDayOfWeek = new Date(year, monthIndex, 1).getDay();
 
-    // 月份英文名（完整拼写）
-    const monthName = currentMonth.toLocaleString('en-US', {
-      month: 'long',
-    });
+    const monthName = currentMonth.toLocaleString('en-US', { month: 'long' });
     const monthLabel = `${monthName} ${year}`;
 
-    // 构造日历网格：按周拆分，每个元素要么是一个 Date 对象，要么是 null 占位
     const cells = [];
-    // 先填充 1 号之前的空位
+
     for (let i = 0; i < firstDayOfWeek; i++) {
       cells.push(null);
     }
-    // 填入本月的每一天
+
     for (let d = 1; d <= daysInMonth; d++) {
       cells.push(new Date(year, monthIndex, d));
     }
-    // 如果最后一周不足 7 天，用 null 补齐
+
     while (cells.length % 7 !== 0) {
       cells.push(null);
     }
@@ -78,47 +101,10 @@ const MonthView = () => {
     return { year, monthIndex, monthLabel, calendarWeeks };
   }, [currentMonth]);
 
-  // ---------- 2) 当 currentMonth 变化时，从 Node-RED 拉取整月的睡眠得分 ----------
-  useEffect(() => {
-    const fetchMonthlyScores = async () => {
-      try {
-        const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-        const results = {};
-
-        const requests = [];
-        for (let d = 1; d <= daysInMonth; d++) {
-          const date = new Date(year, monthIndex, d);
-          const dateStr = formatToISODate(date);
-
-          const req = fetch(`${API_URL}/pillow/sleep/score?date=${dateStr}`)
-            .then((res) => res.json())
-            .then((data) => {
-              if (data && data.ok) {
-                results[dateStr] = data.quality_score;
-              } else {
-                results[dateStr] = 0;
-              }
-            })
-            .catch(() => {
-              results[dateStr] = 0;
-            });
-
-          requests.push(req);
-        }
-
-        await Promise.all(requests);
-        setMonthlyScores(results);
-      } catch (err) {
-        // 网络错误时，仅记录并避免崩溃
-        setMonthlyScores({});
-      }
-    };
-
-    fetchMonthlyScores();
-  }, [year, monthIndex]);
-
-  // ---------- 3) 月份选择器的切换逻辑 ----------
+  // Month selector navigation (clamped to 2025-11 / 2025-12)
   const goToPrevMonth = () => {
+    if (year === ALLOW_YEAR && monthIndex === MIN_MONTH_INDEX) return;
+
     setCurrentMonth((prev) => {
       const y = prev.getFullYear();
       const m = prev.getMonth();
@@ -127,6 +113,8 @@ const MonthView = () => {
   };
 
   const goToNextMonth = () => {
+    if (year === ALLOW_YEAR && monthIndex === MAX_MONTH_INDEX) return;
+
     setCurrentMonth((prev) => {
       const y = prev.getFullYear();
       const m = prev.getMonth();
@@ -134,47 +122,47 @@ const MonthView = () => {
     });
   };
 
-  // 星期标题（展示用）
   const daysOfWeek = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-  // 渲染某一天的 ScoreCircle 圆环（里面覆盖显示日期）
+  // Calendar cell renderer
   const renderDayCircle = (dateObj) => {
     if (!dateObj) return null;
 
     const dateStr = formatToISODate(dateObj);
-    const score = monthlyScores[dateStr] ?? 0;
+    const score = monthlyScores[dateStr];
+
+    if (typeof score !== 'number') {
+      return (
+        <View style={mStyles.dayCircleOuter}>
+          <View style={mStyles.emptyDayCircle}>
+            <Text style={mStyles.emptyDayNumber}>{dateObj.getDate()}</Text>
+          </View>
+        </View>
+      );
+    }
+
     const color = getScoreColor(score);
 
     return (
       <View style={mStyles.dayCircleOuter}>
-        {/* 相对布局：ScoreCircle 在底层，日期文字覆盖在中心 */}
         <View style={mStyles.scoreCircleWrapper}>
-          <ScoreCircle
-            score={score}
-            size={32}
-            strokeWidth={3}
-            color={color}
-          />
+          <ScoreCircle score={score} size={32} strokeWidth={3} color={color} />
           <Text style={mStyles.dayNumber}>{dateObj.getDate()}</Text>
         </View>
       </View>
     );
   };
 
-  // --- 模拟 Duration Trend / Highlights 的假数据 ---
+  // Mock duration trend data
   const trendData = [6.0, 6.5, 7.2, 7.0, 7.5, 7.8, 7.1, 7.4, 7.6, 7.3];
   const maxTrendVal = Math.max(...trendData);
 
   return (
     <View style={mStyles.container}>
-      {/* ---------- 顶部月份选择器 ---------- */}
+      {/* Month selector */}
       <View style={mStyles.monthSelector}>
         <TouchableOpacity onPress={goToPrevMonth} style={mStyles.monthArrowBtn}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={20}
-            color="#BFC3E1"
-          />
+          <MaterialCommunityIcons name="chevron-left" size={20} color="#BFC3E1" />
         </TouchableOpacity>
 
         <View style={mStyles.monthCenter}>
@@ -186,47 +174,36 @@ const MonthView = () => {
               color="#9DA2C7"
               style={{ marginRight: 4 }}
             />
-            <Text style={mStyles.monthSubtitle}>Monthly Overview</Text>
+            <Text style={mStyles.monthSubtitle}>Monthly overview</Text>
           </View>
         </View>
 
         <TouchableOpacity onPress={goToNextMonth} style={mStyles.monthArrowBtn}>
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={20}
-            color="#BFC3E1"
-          />
+          <MaterialCommunityIcons name="chevron-right" size={20} color="#BFC3E1" />
         </TouchableOpacity>
       </View>
 
-      {/* ---------- Sleep Quality 日历卡片 ---------- */}
+      {/* Sleep quality calendar */}
       <View style={globalStyles.card}>
-        {/* 标题 + 图例 */}
         <View style={mStyles.cardHeaderRow}>
           <Text style={globalStyles.cardTitle}>Sleep Quality</Text>
+
           <View style={mStyles.legendRow}>
             <View style={mStyles.legendItem}>
-              <View
-                style={[mStyles.legendDot, { backgroundColor: '#FFC850' }]}
-              />
-              <Text style={mStyles.legendText}>Great</Text>
-            </View>
-            <View style={mStyles.legendItem}>
-              <View
-                style={[mStyles.legendDot, { backgroundColor: '#A18CFF' }]}
-              />
-              <Text style={mStyles.legendText}>Good</Text>
-            </View>
-            <View style={mStyles.legendItem}>
-              <View
-                style={[mStyles.legendDot, { backgroundColor: '#FF71A0' }]}
-              />
+              <View style={[mStyles.legendDot, { backgroundColor: '#FF8585' }]} />
               <Text style={mStyles.legendText}>Poor</Text>
+            </View>
+            <View style={mStyles.legendItem}>
+              <View style={[mStyles.legendDot, { backgroundColor: '#FFC850' }]} />
+              <Text style={mStyles.legendText}>Fair</Text>
+            </View>
+            <View style={mStyles.legendItem}>
+              <View style={[mStyles.legendDot, { backgroundColor: '#703EFF' }]} />
+              <Text style={mStyles.legendText}>Good</Text>
             </View>
           </View>
         </View>
 
-        {/* 星期标题行 */}
         <View style={mStyles.weekHeaderRow}>
           {daysOfWeek.map((d, index) => (
             <Text key={`${d}-${index}`} style={mStyles.weekHeaderText}>
@@ -235,7 +212,6 @@ const MonthView = () => {
           ))}
         </View>
 
-        {/* 日历主体 */}
         <View style={mStyles.calendarBody}>
           {calendarWeeks.map((week, wi) => (
             <View key={wi} style={mStyles.weekRow}>
@@ -249,7 +225,7 @@ const MonthView = () => {
         </View>
       </View>
 
-      {/* ---------- Duration Trend 时长趋势卡片 ---------- */}
+      {/* Duration trend */}
       <View style={globalStyles.card}>
         <Text style={globalStyles.cardTitle}>Duration Trend</Text>
         <Text style={[globalStyles.subText, { marginBottom: 16 }]}>
@@ -258,7 +234,7 @@ const MonthView = () => {
 
         <View style={mStyles.trendChart}>
           {trendData.map((val, index) => {
-            const height = (val / maxTrendVal) * 100; // 最大高度约 100 像素
+            const height = (val / maxTrendVal) * 100;
             const barColor =
               index % 3 === 0
                 ? '#4D9CFF'
@@ -271,7 +247,10 @@ const MonthView = () => {
                 <View
                   style={[
                     mStyles.trendBar,
-                    { height, backgroundColor: barColor },
+                    {
+                      height,
+                      backgroundColor: barColor,
+                    },
                   ]}
                 />
               </View>
@@ -280,13 +259,13 @@ const MonthView = () => {
         </View>
 
         <View style={mStyles.trendAxisRow}>
-          <Text style={mStyles.axisLabel}>June 1</Text>
-          <Text style={mStyles.axisLabel}>June 15</Text>
-          <Text style={mStyles.axisLabel}>June 30</Text>
+          <Text style={mStyles.axisLabel}>Nov 1</Text>
+          <Text style={mStyles.axisLabel}>Nov 15</Text>
+          <Text style={mStyles.axisLabel}>Dec 11</Text>
         </View>
       </View>
 
-      {/* ---------- Highlights 区块 ---------- */}
+      {/* Highlights */}
       <Text style={globalStyles.sectionHeaderOutside}>Highlights</Text>
 
       <View style={mStyles.highlightRow}>
@@ -317,9 +296,7 @@ const MonthView = () => {
               />
             </View>
             <View style={[mStyles.tagPill, { backgroundColor: '#2B2655' }]}>
-              <Text style={[mStyles.tagText, { color: '#B7A6FF' }]}>
-                Top 10%
-              </Text>
+              <Text style={[mStyles.tagText, { color: '#B7A6FF' }]}>Top 10%</Text>
             </View>
           </View>
           <Text style={mStyles.highlightValue}>1h 42m</Text>
@@ -337,7 +314,7 @@ const MonthView = () => {
             />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={mStyles.consistencyTitle}>Great Consistency!</Text>
+            <Text style={mStyles.consistencyTitle}>Great consistency!</Text>
             <Text style={mStyles.consistencyText}>
               You went to bed on time 24 days this month.
             </Text>
@@ -350,13 +327,13 @@ const MonthView = () => {
 
 export default MonthView;
 
-// 局部样式：仅用于 MonthView
+// Local styles for MonthView
 const mStyles = StyleSheet.create({
   container: {
     paddingBottom: 40,
   },
 
-  // 顶部月份选择器
+  // Month selector
   monthSelector: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -386,7 +363,7 @@ const mStyles = StyleSheet.create({
     fontSize: 11,
   },
 
-  // Sleep Quality 卡片内部
+  // Sleep quality card
   cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -455,7 +432,23 @@ const mStyles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Duration Trend 柱状图
+  // Empty day circle
+  emptyDayCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(180, 180, 210, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyDayNumber: {
+    color: '#B7BAD7',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+
+  // Duration trend
   trendChart: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -532,7 +525,7 @@ const mStyles = StyleSheet.create({
     fontSize: 11,
   },
 
-  // Great Consistency 卡片
+  // Consistency card
   consistencyCard: {
     marginHorizontal: 20,
     borderRadius: 22,

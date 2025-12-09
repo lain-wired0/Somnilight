@@ -1,8 +1,4 @@
-// screens/Myinfo.js
-// 说明：个人资料 / Profile 页面（顶部固定自定义头部 + 下方内容可滚动）
-// 要求：APP 内文字全部为英文，代码注释为中文
-
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -10,29 +6,26 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  SafeAreaView,      // 使用 SafeAreaView 适配刘海
-  ImageBackground,   // 新增：用于和 Stats 一样的背景图
+  SafeAreaView,
+  ImageBackground,
 } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-
-// 引入 Stats 共用的背景尺寸样式
 import { bg_style } from './Stats/StatsStyles';
 
 const MyinfoScreen = () => {
-  // 开关状态（勿扰、健康同步）
+  // Toggle states
   const [doNotDisturb, setDoNotDisturb] = useState(true);
   const [healthSync, setHealthSync] = useState(true);
 
   return (
     <View style={styles.root}>
-      {/* 和 Stats 一样的星空背景图 */}
+      {/* Background image (same as Stats) */}
       <ImageBackground
         source={require('../assets/general_images/bg_stats.png')}
         style={bg_style}
       >
-        {/* SafeAreaView 确保顶部不被刘海遮挡 */}
         <SafeAreaView style={styles.safeArea}>
-          {/* 自定义固定头部：不会跟着下面内容滚动 */}
+          {/* Fixed header */}
           <View style={styles.fixedHeader}>
             <Text style={styles.headerTitle}>Profile</Text>
             <TouchableOpacity style={styles.headerIconBtn}>
@@ -44,19 +37,18 @@ const MyinfoScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* ScrollView：下面所有内容可以滚动 */}
+          {/* Scrollable content */}
           <ScrollView
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
           >
-            {/* 个人信息：头像 + 姓名 + 加入时间 */}
+            {/* Profile info */}
             <View style={styles.profileRow}>
               <View style={styles.avatarWrapper}>
                 <View style={styles.avatarCircle}>
                   <Text style={styles.avatarEmoji}>🥱</Text>
                 </View>
-                {/* 小紫色设备徽章 */}
                 <View style={styles.deviceBadge}>
                   <MaterialCommunityIcons
                     name="cellphone"
@@ -72,7 +64,7 @@ const MyinfoScreen = () => {
               </View>
             </View>
 
-            {/* Sleep time / Score 两个统计卡片 */}
+            {/* Sleep stats cards */}
             <View style={styles.statsRow}>
               <View style={[styles.smallStatCard, { marginRight: 10 }]}>
                 <View style={styles.smallStatIconCircle}>
@@ -106,7 +98,7 @@ const MyinfoScreen = () => {
               </View>
             </View>
 
-            {/* Go Premium 卡片（改成和 Stats 类似的玻璃卡片 + 高亮背景） */}
+            {/* Premium card */}
             <View style={styles.premiumCard}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.premiumTitle}>Go Premium</Text>
@@ -119,7 +111,7 @@ const MyinfoScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* 功能入口四宫格：Sleep Circle / Community / Challenges / Reports */}
+            {/* Feature grid */}
             <View style={styles.gridRow}>
               <View style={[styles.gridCard, { marginRight: 10 }]}>
                 <View
@@ -192,10 +184,10 @@ const MyinfoScreen = () => {
               </View>
             </View>
 
-            {/* Preferences 标题 */}
+            {/* Preferences title */}
             <Text style={styles.sectionTitle}>PREFERENCES</Text>
 
-            {/* Preferences 卡片：Daily Goal / Sounds & Haptics / DND / Health Sync */}
+            {/* Preferences card */}
             <View style={styles.preferenceCard}>
               {/* Daily Goal */}
               <TouchableOpacity style={styles.prefRow}>
@@ -295,7 +287,7 @@ const MyinfoScreen = () => {
               </View>
             </View>
 
-            {/* Help & Feedback / Log Out 卡片 */}
+            {/* Help & logout */}
             <View style={styles.preferenceCard}>
               <TouchableOpacity style={styles.prefRow}>
                 <View style={styles.prefLeft}>
@@ -344,10 +336,10 @@ const MyinfoScreen = () => {
 
 export { MyinfoScreen };
 
-// ---------- 样式 ----------
+// ---------- Styles ----------
 
 const styles = StyleSheet.create({
-  // 整个页面背景（和 Stats 外层一致）
+  // Root
   root: {
     flex: 1,
     backgroundColor: '#05011C',
@@ -357,7 +349,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
 
-  // 固定头部区域（Profile + 设置）
+  // Header
   fixedHeader: {
     paddingHorizontal: 20,
     paddingTop: 10,
@@ -365,7 +357,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: 'transparent', // 让星空背景透出来
+    backgroundColor: 'transparent',
   },
   headerTitle: {
     color: '#FFFFFF',
@@ -381,7 +373,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // ScrollView 本体
+  // Scroll
   scroll: {
     flex: 1,
   },
@@ -391,7 +383,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // 头像区域
+  // Profile row
   profileRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -437,7 +429,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 
-  // 两个统计小卡片（改成和 Stats card 相近：半透明紫 + 边框）
+  // Small stats cards
   statsRow: {
     flexDirection: 'row',
     marginBottom: 18,
@@ -476,7 +468,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Premium 卡片（在 Stats 风格基础上，整体更亮）
+  // Premium card
   premiumCard: {
     borderRadius: 22,
     paddingVertical: 18,
@@ -514,7 +506,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // 四宫格
+  // Feature grid
   gridRow: {
     flexDirection: 'row',
     marginBottom: 12,
@@ -522,7 +514,7 @@ const styles = StyleSheet.create({
   gridCard: {
     flex: 1,
     borderRadius: 20,
-    backgroundColor: 'rgba(31, 27, 60, 0.35)', // 和 Stats 里的 signsCard/rowCard 接近
+    backgroundColor: 'rgba(31, 27, 60, 0.35)',
     borderWidth: 1,
     borderColor: 'rgba(125,125,125,0.5)',
     paddingVertical: 14,
@@ -547,7 +539,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // Preferences 标题
+  // Preferences title
   sectionTitle: {
     marginTop: 18,
     marginBottom: 8,
@@ -557,7 +549,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // Preferences 卡片（同样采用 Stats 的玻璃卡片风格）
+  // Preferences card
   preferenceCard: {
     borderRadius: 20,
     backgroundColor: 'rgba(31, 27, 60, 0.35)',
