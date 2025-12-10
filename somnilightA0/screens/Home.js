@@ -180,14 +180,8 @@ const HomeConfigSlide = ({pass}) => {
 
                     <View style = {{padding:15}}>
                         <Image //pillow
-                            source = {require('../assets/general_images/productShot.png')}
-                            style = {{
-                                alignSelf: 'center',
-                                top:-8,
-                                width:330,
-                                height:180,
-                                position:'relative',
-                            }}/>
+                            source = {require('../assets/general_images/pillow_legacy.png')}
+                            style = {pillow_legacy}/>
                     </View>
                     <HomeControlPanel pass = {pass}/>
                     <HomeFeedbackPanel pass = {pass}/>        
@@ -386,8 +380,20 @@ const HomeControlPanel = ({pass}) => {
                         </View>
 
                         {/* Panel 2: Sleep Mode Panel */}
-                        <View style={{ width: containerWidth, justifyContent: 'center', alignItems: 'center' }}>
-                            <Text style={{...textStyles.medium16, color: 'white'}}>Sleep Mode</Text>
+                        <View style={{ width: containerWidth, justifyContent: 'center', alignItems: 'center' ,padding:20}}>
+                            <Text style={{...textStyles.medium16, color: 'white'}}>Sleep Timer</Text>
+                            <TouchableOpacity 
+                                style = {{
+                                    alignItems:'center', 
+                                    justifyContent:'center', 
+                                    backgroundColor :'rgba(255,255,255,0.3)', 
+                                    borderRadius:15,height:50,width:110,top:10
+                                }}
+                                onPress={{/*call picker modal here */}}
+                                >
+
+                                <Text style ={{...textStyles.medium16, color:'white'}}>Start</Text>
+                            </TouchableOpacity>
                         </View>
                     </ScrollView>
                     
@@ -646,4 +652,20 @@ const hp_style = {
     flex:1,
 }
 
+const productShot  = {
+    alignSelf: 'center',
+    top:-8,
+    width:330,
+    height:180,
+    position:'relative',
+}
+
+const pillow_legacy ={
+    alignSelf: 'center',
+    top:-3,
+    width:200,
+    height:150,
+    position:'relative',
+    marginVertical:10,
+}
 export { HomeScreen }
