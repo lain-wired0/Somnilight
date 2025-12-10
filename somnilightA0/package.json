@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@emotion/native": "^11.11.0",
-    "@expo/vector-icons": "^15.0.3",
     "@expo/metro-runtime": "~6.1.2",
+    "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "^5.2.7",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/slider": "^5.1.1",
@@ -24,6 +24,7 @@
     "@react-navigation/stack": "^7.6.11",
     "@yz1311/react-native-wheel-picker": "^0.4.5",
     "expo": "~54.0.25",
+    "expo-av": "^16.0.8",
     "expo-blur": "~15.0.8",
     "expo-linear-gradient": "~15.0.8",
     "expo-status-bar": "~3.0.8",

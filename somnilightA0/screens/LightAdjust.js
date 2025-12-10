@@ -15,6 +15,8 @@ export default function LightAdjust({ onClose, showHandle = false }) {
   const [selectedColor, setSelectedColor] = useState('#FFFFFF');
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
 
+  const brightnessRef = useRef(65);
+  const selectedColorRef = useRef('#FFFFFF');
   const startBrightnessRef = useRef(65);
   const lastSendTime = useRef(0);
   const abortControllerRef = useRef(null); // Track current request to allow cancellation
@@ -29,10 +31,12 @@ export default function LightAdjust({ onClose, showHandle = false }) {
         if (savedBrightness !== null) {
           const b = parseInt(savedBrightness, 10);
           setBrightness(b);
+          brightnessRef.current = b;
           startBrightnessRef.current = b;
         }
         if (savedColor !== null) {
           setSelectedColor(savedColor);
+          selectedColorRef.current = savedColor;
           const idx = COLOR_OPTIONS.indexOf(savedColor);
           if (idx >= 0) setSelectedColorIndex(idx);
         }
@@ -43,11 +47,13 @@ export default function LightAdjust({ onClose, showHandle = false }) {
           const data = await res.json();
           if (data.brightness !== undefined) {
             setBrightness(data.brightness);
+            brightnessRef.current = data.brightness;
             startBrightnessRef.current = data.brightness;
             await AsyncStorage.setItem('last_brightness', data.brightness.toString());
           }
           if (data.color) {
             setSelectedColor(data.color);
+            selectedColorRef.current = data.color;
             const idx2 = COLOR_OPTIONS.indexOf(data.color);
             if (idx2 >= 0) setSelectedColorIndex(idx2);
             await AsyncStorage.setItem('last_color', data.color);
@@ -128,22 +134,24 @@ export default function LightAdjust({ onClose, showHandle = false }) {
         console.error('[LightAdjust] Failed to POST /set_state', err);
       }
     }
-  }, [selectedColor]);
+  }, []);
 
   // 3) 亮度变化处理（滑动时）
   const handleBrightnessChange = useCallback((value) => {
     setBrightness(value);
-    sendStateToServer({ brightness: value, color: selectedColor }); // 每次带上当前颜色（便于服务器保存同步）
-  }, [selectedColor, sendStateToServer]);
+    brightnessRef.current = value;
+    sendStateToServer({ brightness: value, color: selectedColorRef.current }); // 每次带上当前颜色（便于服务器保存同步）
+  }, [sendStateToServer]);
 
   // 4) 颜色选择处理
   const handleColorSelect = useCallback((color, index) => {
     setSelectedColor(color);
+    selectedColorRef.current = color;
     setSelectedColorIndex(index);
     AsyncStorage.setItem('last_color', color).catch(() => {});
     // 立即发送颜色
-    sendStateToServer({ color, brightness });
-  }, [brightness, sendStateToServer]);
+    sendStateToServer({ color, brightness: brightnessRef.current });
+  }, [sendStateToServer]);
 
   // 滑块交互
   const sliderRef = useRef(null);
@@ -171,13 +179,14 @@ export default function LightAdjust({ onClose, showHandle = false }) {
           newBrightness = Math.max(0, Math.min(100, Math.round(newBrightness)));
           
           setBrightness(newBrightness);
-          sendStateToServer({ brightness: newBrightness, color: selectedColor });
+          brightnessRef.current = newBrightness;
+          sendStateToServer({ brightness: newBrightness, color: selectedColorRef.current });
         });
       },
 
       onPanResponderRelease: () => {
-        // Final confirmation
-        sendStateToServer({ brightness, color: selectedColor });
+        // Final confirmation - use refs to get latest values
+        sendStateToServer({ brightness: brightnessRef.current, color: selectedColorRef.current });
       }
     })
   ).current;

@@ -2,53 +2,49 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, PanResponder, StyleSheet, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ele } from '../../styles';
+import { sendLightStateToServer } from '../LightServerSync';
 
 const SLIDER_WIDTH = 50;
 const SLIDER_HEIGHT = 80;
 const HANDLE_HEIGHT = 25;
 const SERVER_URL = 'http://150.158.158.233:1880';
 
-export default function LightIntensitySlider({ onBrightnessChange }) {
+export default function LightIntensitySlider({ onBrightnessChange, refreshTrigger }) {
   const [brightness, setBrightness] = useState(65);
+  const brightnessRef = useRef(65);
   const startBrightnessRef = useRef(65);
   const lastSendTime = useRef(0);
   const sliderRef = useRef(null);
 
-  // Load initial brightness
-  useEffect(() => {
-    const loadState = async () => {
-      try {
-        const savedBrightness = await AsyncStorage.getItem('last_brightness');
-        if (savedBrightness !== null) {
-          const b = parseInt(savedBrightness, 10);
-          setBrightness(b);
-          startBrightnessRef.current = b;
-        }
-      } catch (err) {
-        console.error('Load brightness error:', err);
+  // Load brightness from AsyncStorage
+  const loadBrightness = useCallback(async () => {
+    try {
+      const savedBrightness = await AsyncStorage.getItem('last_brightness');
+      if (savedBrightness !== null) {
+        const b = parseInt(savedBrightness, 10);
+        setBrightness(b);
+        brightnessRef.current = b;
+        startBrightnessRef.current = b;
       }
-    };
-    loadState();
+    } catch (err) {
+      console.error('Load brightness error:', err);
+    }
   }, []);
 
-  const sendBrightnessToServer = useCallback(async (value) => {
-    const now = Date.now();
-    if (now - lastSendTime.current < 200) {
-      AsyncStorage.setItem('last_brightness', value.toString());
-      return;
-    }
-    lastSendTime.current = now;
-    AsyncStorage.setItem('last_brightness', value.toString());
+  // Load initial brightness on mount
+  useEffect(() => {
+    loadBrightness();
+  }, [loadBrightness]);
 
-    try {
-      await fetch(`${SERVER_URL}/set_state`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brightness: value }),
-      });
-    } catch (err) {
-      console.error('Failed to POST brightness:', err);
+  // Reload brightness when refreshTrigger changes (modal closes)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      loadBrightness();
     }
+  }, [refreshTrigger, loadBrightness]);
+
+  const sendBrightnessToServer = useCallback(async (value) => {
+    await sendLightStateToServer({ brightness: value });
   }, []);
 
   const panResponder = useRef(
@@ -76,13 +72,14 @@ export default function LightIntensitySlider({ onBrightnessChange }) {
           newBrightness = Math.max(0, Math.min(100, Math.round(newBrightness)));
 
           setBrightness(newBrightness);
+          brightnessRef.current = newBrightness;
           sendBrightnessToServer(newBrightness);
           onBrightnessChange?.(newBrightness);
         });
       },
 
       onPanResponderRelease: () => {
-        sendBrightnessToServer(brightness);
+        sendBrightnessToServer(brightnessRef.current);
       },
     })
   ).current;

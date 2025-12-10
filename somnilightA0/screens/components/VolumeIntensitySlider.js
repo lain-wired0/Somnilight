@@ -2,53 +2,49 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, PanResponder, StyleSheet, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ele } from '../../styles';
+import { sendVolumeToServer as sendVolumeToServerShared } from '../VolumeServerSync';
 
 const SLIDER_WIDTH = 50;
 const SLIDER_HEIGHT = 80;
 const HANDLE_HEIGHT = 25;
 const SERVER_URL = 'http://150.158.158.233:1880';
 
-export default function VolumeIntensitySlider({ onVolumeChange }) {
+export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger }) {
   const [volume, setVolume] = useState(60);
+  const volumeRef = useRef(60);
   const startVolumeRef = useRef(60);
   const lastSendTime = useRef(0);
   const sliderRef = useRef(null);
 
-  // Load initial volume
-  useEffect(() => {
-    const loadState = async () => {
-      try {
-        const savedVolume = await AsyncStorage.getItem('last_volume');
-        if (savedVolume !== null) {
-          const v = parseInt(savedVolume, 10);
-          setVolume(v);
-          startVolumeRef.current = v;
-        }
-      } catch (err) {
-        console.error('Load volume error:', err);
+  // Load volume from AsyncStorage
+  const loadVolume = useCallback(async () => {
+    try {
+      const savedVolume = await AsyncStorage.getItem('last_volume');
+      if (savedVolume !== null) {
+        const v = parseInt(savedVolume, 10);
+        setVolume(v);
+        volumeRef.current = v;
+        startVolumeRef.current = v;
       }
-    };
-    loadState();
+    } catch (err) {
+      console.error('Load volume error:', err);
+    }
   }, []);
 
-  const sendVolumeToServer = useCallback(async (value) => {
-    const now = Date.now();
-    if (now - lastSendTime.current < 200) {
-      AsyncStorage.setItem('last_volume', value.toString());
-      return;
-    }
-    lastSendTime.current = now;
-    AsyncStorage.setItem('last_volume', value.toString());
+  // Load initial volume on mount
+  useEffect(() => {
+    loadVolume();
+  }, [loadVolume]);
 
-    try {
-      await fetch(`${SERVER_URL}/set_volume`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ volume: value }),
-      });
-    } catch (err) {
-      console.error('Failed to POST volume:', err);
+  // Reload volume when refreshTrigger changes (modal closes)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      loadVolume();
     }
+  }, [refreshTrigger, loadVolume]);
+
+  const sendVolumeToServer = useCallback(async (value) => {
+    await sendVolumeToServerShared({ volume: value });
   }, []);
 
   const panResponder = useRef(
@@ -76,13 +72,14 @@ export default function VolumeIntensitySlider({ onVolumeChange }) {
           newVolume = Math.max(0, Math.min(100, Math.round(newVolume)));
 
           setVolume(newVolume);
+          volumeRef.current = newVolume;
           sendVolumeToServer(newVolume);
           onVolumeChange?.(newVolume);
         });
       },
 
       onPanResponderRelease: () => {
-        sendVolumeToServer(volume);
+        sendVolumeToServer(volumeRef.current);
       },
     })
   ).current;

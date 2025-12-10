@@ -62,6 +62,8 @@ export function HomeStack() {
 const HomeScreen = (pass = {navigation, route}) => {
     const [lightAdjustVisible, setLightAdjustVisible] = useState(false);
     const [volumeAdjustVisible, setVolumeAdjustVisible] = useState(false);
+    const [brightnessRefreshTrigger, setBrightnessRefreshTrigger] = useState(0);
+    const [volumeRefreshTrigger, setVolumeRefreshTrigger] = useState(0);
     
     // Sleep Timer State
     const [timerModalVisible, setTimerModalVisible] = useState(false);
@@ -158,15 +160,23 @@ const HomeScreen = (pass = {navigation, route}) => {
                     remainingSeconds,
                     setTimerModalVisible,
                     stopTimer,
-                    formatRemainingTime
+                    formatRemainingTime,
+                    brightnessRefreshTrigger,
+                    volumeRefreshTrigger
                 }}/>
             </View>
             
             {/* Light Adjust Modal */}
-            <LightAdjustModal visible={lightAdjustVisible} onClose={() => setLightAdjustVisible(false)} />
+            <LightAdjustModal visible={lightAdjustVisible} onClose={() => {
+                setLightAdjustVisible(false);
+                setBrightnessRefreshTrigger(prev => prev + 1);
+            }} />
             
             {/* Volume Adjust Modal */}
-            <VolumeAdjustModal visible={volumeAdjustVisible} onClose={() => setVolumeAdjustVisible(false)} />
+            <VolumeAdjustModal visible={volumeAdjustVisible} onClose={() => {
+                setVolumeAdjustVisible(false);
+                setVolumeRefreshTrigger(prev => prev + 1);
+            }} />
             
             {/* Sleep Timer Modal */}
             <TimerPickerModal 
@@ -497,14 +507,14 @@ const HomeControlPanel = ({pass}) => {
                     onPress={() => pass.setLightAdjustVisible(true)}
                     activeOpacity={0.8}
                 >
-                    <LightIntensitySlider />
+                    <LightIntensitySlider refreshTrigger={pass.brightnessRefreshTrigger} />
                 </TouchableOpacity>                  
                 <TouchableOpacity 
                     style = {{...containers.violetDarkC20,flex:1}}
                     onPress={() => pass.setVolumeAdjustVisible(true)}
                     activeOpacity={0.8}
                 >
-                    <VolumeIntensitySlider />
+                    <VolumeIntensitySlider refreshTrigger={pass.volumeRefreshTrigger} />
                 </TouchableOpacity>                                             
             </View>
                 <View style={{ ...containers.violetDarkC20, flex: 3, flexDirection: 'row' }}>
