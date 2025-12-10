@@ -469,7 +469,7 @@ const HomeControlPanel = ({pass}) => {
                                     }
                                 }}
                                 >
-                                <Text style ={{...textStyles.medium16, color:'white', fontSize: pass.timerRunning ? 20 : 16}}>
+                                <Text style ={{...textStyles.medium16, color:'white', fontSize: 20, lineHeight:0 }}>
                                     {pass.timerRunning ? pass.formatRemainingTime(pass.remainingSeconds) : 'Start'}
                                 </Text>
                             </TouchableOpacity>
