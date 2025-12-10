@@ -9,13 +9,24 @@ const SLIDER_HEIGHT = 80;
 const HANDLE_HEIGHT = 25;
 const SERVER_URL = 'http://150.158.158.233:1880';
 
-export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger, onManualChange }) {
+export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger, onManualChange, timerFadeDownAmount = 0, timerMinutes = 0, updateTimerSoundVolume }) {
   const [volume, setVolume] = useState(60);
+  const [dragFadeValue, setDragFadeValue] = useState(0); // Tracks fade during/after drag
   const volumeRef = useRef(60);
   const startVolumeRef = useRef(60);
+  const preDragVolumeRef = useRef(60); // Store volume before drag started
   const lastSendTime = useRef(0);
   const sliderRef = useRef(null);
   const onManualChangeRef = useRef(onManualChange);
+  const dragTimeoutRef = useRef(null);
+  const fadeReturnAnimationRef = useRef(null);
+  const fadeReturnStartTimeRef = useRef(null); // Track when fade animation started
+  
+  // Calculate effective fade (use drag fade when timer is at 0, not PERSIST)
+  const effectiveFadeAmount = timerFadeDownAmount === 0 && timerMinutes === 0 ? dragFadeValue : timerFadeDownAmount;
+  
+  // Calculate display volume with timer fade applied
+  const displayVolume = Math.max(0, volume - (volume * effectiveFadeAmount / 100));
 
   // Load volume from AsyncStorage (or preset temp values)
   const loadVolume = useCallback(async () => {
@@ -60,10 +71,69 @@ export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger, 
       loadVolume();
     }
   }, [refreshTrigger, loadVolume]);
-
+  
   const sendVolumeToServer = useCallback(async (value) => {
     await sendVolumeToServerShared({ volume: value });
   }, []);
+  
+  // Send faded volume to server when timer fade is active
+  useEffect(() => {
+    if (timerFadeDownAmount > 0) {
+      const fadedVolume = Math.round(displayVolume);
+      sendVolumeToServer(fadedVolume);
+      console.log('[VolumeIntensitySlider] Timer fade active, sending volume:', fadedVolume);
+    }
+  }, [displayVolume, timerFadeDownAmount, sendVolumeToServer]);
+
+  // Drag fade animation: gradually restore fade to 100% over 2 seconds (after drag ends + 3 second delay)
+  useEffect(() => {
+    if (timerFadeDownAmount !== 0 || timerMinutes !== 0) {
+      // Timer is running or in PERSIST mode, don't use drag fade logic
+      setDragFadeValue(0);
+      return;
+    }
+
+    // If fade animation has been triggered (dragFadeValue is a small number like 0.001 to indicate "start animating")
+    if (dragFadeValue > 0 && dragFadeValue < 100) {
+      let animationFrameId = null;
+      
+      // Initialize animation start time if not set
+      if (!fadeReturnStartTimeRef.current) {
+        fadeReturnStartTimeRef.current = Date.now();
+      }
+
+      const animate = () => {
+        const elapsedMs = Date.now() - fadeReturnStartTimeRef.current;
+        const FADE_RETURN_DURATION = 2000; // 2 seconds to return to 100%
+        const progress = Math.min(1, elapsedMs / FADE_RETURN_DURATION);
+        const newFadeValue = progress * 100;
+        
+        setDragFadeValue(newFadeValue);
+        
+        if (progress < 1) {
+          animationFrameId = requestAnimationFrame(animate);
+        } else {
+          // Animation complete - reset volume to pre-drag value
+          setDragFadeValue(100);
+          fadeReturnStartTimeRef.current = null;
+          
+          // Reset volume to what it was before the drag started
+          console.log('[VolumeIntensitySlider] Fade animation complete, resetting volume from', volumeRef.current, 'to', preDragVolumeRef.current);
+          setVolume(preDragVolumeRef.current);
+          volumeRef.current = preDragVolumeRef.current;
+          sendVolumeToServer(preDragVolumeRef.current);
+        }
+      };
+
+      animationFrameId = requestAnimationFrame(animate);
+
+      return () => {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+      };
+    }
+  }, [dragFadeValue, timerFadeDownAmount, timerMinutes, sendVolumeToServer]);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -75,9 +145,31 @@ export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger, 
 
       onPanResponderGrant: () => {
         startVolumeRef.current = volume;
+        // Store the volume value before drag starts so we can restore it later
+        preDragVolumeRef.current = volume;
         // Clear active preset when user makes manual adjustment
         console.log('[VolumeIntensitySlider] Calling onManualChange');
         onManualChangeRef.current?.();
+        
+        // If timer is at 0 (not PERSIST) and user drags, temporarily set fade to 0
+        if (timerFadeDownAmount === 0 && timerMinutes === 0) {
+          console.log('[VolumeIntensitySlider] Drag started with timer at 0, setting fade to 0%');
+          setDragFadeValue(0);
+          
+          // Clear any pending timeout
+          if (dragTimeoutRef.current) {
+            clearTimeout(dragTimeoutRef.current);
+          }
+          
+          // Clear any pending animation
+          if (fadeReturnAnimationRef.current) {
+            cancelAnimationFrame(fadeReturnAnimationRef.current);
+            fadeReturnAnimationRef.current = null;
+          }
+          
+          // Reset animation start time
+          fadeReturnStartTimeRef.current = null;
+        }
       },
 
       onPanResponderMove: (evt, gestureState) => {
@@ -96,16 +188,48 @@ export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger, 
           volumeRef.current = newVolume;
           sendVolumeToServer(newVolume);
           onVolumeChange?.(newVolume);
+          // Update timer sound volume if callback provided
+          updateTimerSoundVolume?.(newVolume);
         });
       },
 
       onPanResponderRelease: () => {
         sendVolumeToServer(volumeRef.current);
+        // Update timer sound volume on release
+        updateTimerSoundVolume?.(volumeRef.current);
+        
+        // If timer is at 0 (not PERSIST) and user was dragging, start 3-second countdown to fade back to 100%
+        if (timerFadeDownAmount === 0 && timerMinutes === 0 && dragFadeValue === 0) {
+          console.log('[VolumeIntensitySlider] Drag ended, starting 3-second timer before fade animation');
+          
+          // Clear any previous timeout
+          if (dragTimeoutRef.current) {
+            clearTimeout(dragTimeoutRef.current);
+          }
+          
+          // Wait 3 seconds, then start fade animation
+          dragTimeoutRef.current = setTimeout(() => {
+            console.log('[VolumeIntensitySlider] 3-second delay complete, starting fade animation');
+            setDragFadeValue(0.001); // Trigger animation by setting to small value > 0
+          }, 3000);
+        }
       },
     })
   ).current;
 
-  const fillHeight = `${volume}%`;
+  // Cleanup timeouts and animations on unmount
+  useEffect(() => {
+    return () => {
+      if (dragTimeoutRef.current) {
+        clearTimeout(dragTimeoutRef.current);
+      }
+      if (fadeReturnAnimationRef.current) {
+        cancelAnimationFrame(fadeReturnAnimationRef.current);
+      }
+    };
+  }, []);
+
+  const fillHeight = `${displayVolume}%`;
 
   return (
     <View style={styles.container}>

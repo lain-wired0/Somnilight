@@ -52,7 +52,7 @@ export async function sendVolumeToServer(payload) {
   } catch (err) {
     abortControllerRef = null;
     if (err.name === 'AbortError') {
-      console.log('[VolumeServerSync] Request cancelled or timeout');
+      //console.log('[VolumeServerSync] Request cancelled or timeout');
     } else {
       console.error('[VolumeServerSync] Failed to POST /set_volume', err);
     }

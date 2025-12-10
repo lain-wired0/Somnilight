@@ -214,7 +214,7 @@ export default function VolumeAdjust({ onClose, showHandle = false, onManualChan
         console.error('[VolumeAdjust] POST /set_music Error:', err);
       }
     }
-  }, [onManualChange]);
+  }, []);
 
   // slider
   const sliderRef = useRef(null);
@@ -280,7 +280,7 @@ export default function VolumeAdjust({ onClose, showHandle = false, onManualChan
           left: 0,
           right: 0,
           height: fillHeight,
-          backgroundColor: 'rgba(255,255,255,0.5)'
+          backgroundColor: 'rgba(226,226,226,0.45)'
         }}/>
 
         {/* Invisible touch target (always full size for dragging) */}

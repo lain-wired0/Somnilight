@@ -51,7 +51,7 @@ export async function sendLightStateToServer(payload) {
   } catch (err) {
     abortControllerRef = null;
     if (err.name === 'AbortError') {
-      console.log('[LightServerSync] Request cancelled or timeout');
+      //console.log('[LightServerSync] Request cancelled or timeout');
     } else {
       console.error('[LightServerSync] Failed to POST /set_state', err);
     }

@@ -5,6 +5,7 @@ import { Picker } from '@react-native-picker/picker';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Audio } from 'expo-av';
 
 //react-navigation
 import { createStaticNavigation, NavigationContainer } from '@react-navigation/native';
@@ -69,6 +70,17 @@ const HomeScreen = (pass = {navigation, route}) => {
     // Active preset tracking (shared state between HomeControlPanel and modals)
     const [activePresetId, setActivePresetId] = useState(null);
     
+    // Live sound tracking for timer playback
+    const [liveSoundId, setLiveSoundId] = useState('forest'); // Default to forest
+    const timerSoundRef = useRef(null); // Ref for timer sound playback
+    
+    // Sound files mapping
+    const SOUND_FILES = {
+        forest: require('../assets/sounds/Forest.mp3'),
+        valley: require('../assets/sounds/Valley.mp3'),
+        rain: require('../assets/sounds/Rain.mp3'),
+    };
+    
     // Clear active preset when user makes manual adjustments
     const clearActivePreset = useCallback(async () => {
         console.log('[HomeScreen] clearActivePreset called, current activePresetId:', activePresetId);
@@ -80,19 +92,25 @@ const HomeScreen = (pass = {navigation, route}) => {
     }, [activePresetId]);
     
     // Sleep Timer State
-    const [timerModalVisible, setTimerModalVisible] = useState(false);
-    const [timerMinutes, setTimerMinutes] = useState(30); // Default 30 minutes
+    const [timerMinutes, setTimerMinutes] = useState(0); // Default 0 minutes
     const [timerRunning, setTimerRunning] = useState(false);
     const [remainingSeconds, setRemainingSeconds] = useState(0);
+    const [timerPulseOpacity, setTimerPulseOpacity] = useState(0.85); // For text brightness pulse
+    const [timerFadeDownAmount, setTimerFadeDownAmount] = useState(0); // Amount to fade brightness/volume (0-100)
     const timerIntervalRef = useRef(null);
+    const fadeStartTimeRef = useRef(null); // Track when we entered the last 60 seconds
+    const flickerIntervalRef = useRef(null);
+    const flickerTimeoutsRef = useRef([]);
     
-    // Timer countdown effect
+    // Timer countdown effect - decrements remaining seconds every second
     useEffect(() => {
         if (timerRunning && remainingSeconds > 0) {
             timerIntervalRef.current = setInterval(() => {
                 setRemainingSeconds(prev => {
                     if (prev <= 1) {
                         setTimerRunning(false);
+                        setTimerMinutes(0); // Set picker to 0 when timer completes
+                        setTimerFadeDownAmount(100); // Keep at 100% fade when timer completes
                         return 0;
                     }
                     return prev - 1;
@@ -112,15 +130,190 @@ const HomeScreen = (pass = {navigation, route}) => {
         };
     }, [timerRunning, remainingSeconds]);
     
+    // Smooth fade-down effect for last 60 seconds using animation frame with time-based calculation
+    useEffect(() => {
+        if (timerRunning && remainingSeconds <= 60 && remainingSeconds > 0) {
+            let animationFrameId = null;
+            
+            // Initialize fade start time when entering last 60 seconds
+            if (!fadeStartTimeRef.current) {
+                fadeStartTimeRef.current = Date.now();
+            }
+            
+            const animate = () => {
+                const elapsedMs = Date.now() - fadeStartTimeRef.current;
+                // We want to fade over 60 seconds = 60000ms
+                // Fade goes from 0 to 100 as we progress from start to 60 seconds
+                const fadeAmount = Math.max(0, Math.min(100, (elapsedMs / 60000) * 100));
+                setTimerFadeDownAmount(fadeAmount);
+                animationFrameId = requestAnimationFrame(animate);
+            };
+            
+            animationFrameId = requestAnimationFrame(animate);
+            
+            return () => {
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+            };
+        } else if (!timerRunning && remainingSeconds === 0 && timerMinutes === 0) {
+            // Timer at 0 (never started or user manually set to 0) - NO fade
+            setTimerFadeDownAmount(0);
+            fadeStartTimeRef.current = null;
+        } else if (timerMinutes === -1) {
+            // PERSIST mode selected - no fade
+            setTimerFadeDownAmount(0);
+            fadeStartTimeRef.current = null;
+        } else if (remainingSeconds > 60) {
+            // Not in fade period yet - reset fade
+            setTimerFadeDownAmount(0);
+            fadeStartTimeRef.current = null;
+        }
+        // Don't reset fade in other cases (preserves fade at 100% when timer completes)
+    }, [timerRunning, remainingSeconds, timerMinutes]);
+    
+    // Continuous pulse effect for timer text when running: gradually drop then sudden rise
+    useEffect(() => {
+        if (timerRunning) {
+            let animationFrameId = null;
+            let startTime = null;
+            const cycleDuration = 1000; // Complete cycle in 1 second
+            const stayHighDuration = 0.3; // Stay at max opacity for 30% of cycle
+            const dropDuration = 0.5; // 50% of cycle for gradual drop
+            
+            const animate = (currentTime) => {
+                if (!startTime) startTime = currentTime;
+                const elapsed = (currentTime - startTime) % cycleDuration;
+                const progress = elapsed / cycleDuration;
+                
+                let opacity;
+                if (progress < stayHighDuration) {
+                  // First 30%: stay at maximum
+                  opacity = 1.0;
+                } else if (progress < stayHighDuration + dropDuration) {
+                  // Next 50%: gradual drop from 1.0 to 0.65
+                  const dropProgress = (progress - stayHighDuration) / dropDuration;
+                  opacity = 1.0 - dropProgress * 0.35; // 1.0 -> 0.65
+                } else {
+                  // Last 20%: sudden jump back to 1.0
+                  opacity = 1.0;
+                }
+                
+                setTimerPulseOpacity(opacity);
+                animationFrameId = requestAnimationFrame(animate);
+            };
+            
+            animationFrameId = requestAnimationFrame(animate);
+            
+            return () => {
+                if (animationFrameId) {
+                    cancelAnimationFrame(animationFrameId);
+                }
+            };
+        } else {
+            setTimerPulseOpacity(0.85); // Reset to default brightness
+        }
+    }, [timerRunning]);
+    
+    // Sound playback functions
+    const playTimerSound = useCallback(async (soundId) => {
+        try {
+            // Prevent multiple simultaneous calls
+            if (timerSoundRef.current) {
+                console.log('[HomeScreen] Sound already playing, skipping');
+                return;
+            }
+            
+            console.log(`[HomeScreen] Starting timer sound: ${soundId}`);
+            
+            const soundFile = SOUND_FILES[soundId];
+            if (!soundFile) {
+                console.warn(`[HomeScreen] Sound file not found for: ${soundId}`);
+                return;
+            }
+            
+            const { sound } = await Audio.Sound.createAsync(soundFile, { shouldPlay: false });
+            timerSoundRef.current = sound;
+            
+            await sound.setIsLoopingAsync(true);
+            
+            // Get current volume from AsyncStorage
+            const savedVolume = await AsyncStorage.getItem('last_volume');
+            const volumeValue = savedVolume ? parseInt(savedVolume, 10) / 100 : 0.6; // Convert 0-100 to 0-1
+            await sound.setVolumeAsync(volumeValue);
+            
+            await sound.playAsync();
+            console.log(`[HomeScreen] Timer sound playing: ${soundId} at volume ${volumeValue}`);
+        } catch (err) {
+            console.error('[HomeScreen] Error playing timer sound:', err);
+            // Clean up ref on error
+            timerSoundRef.current = null;
+        }
+    }, []);
+    
+    const stopTimerSound = useCallback(async () => {
+        try {
+            console.log('[HomeScreen] Stopping timer sound...');
+            if (timerSoundRef.current) {
+                await timerSoundRef.current.stopAsync();
+                await timerSoundRef.current.unloadAsync();
+                timerSoundRef.current = null;
+            }
+        } catch (err) {
+            console.error('[HomeScreen] Error stopping timer sound:', err);
+            timerSoundRef.current = null;
+        }
+    }, []);
+    
+    // Update sound volume when volume slider changes
+    const updateTimerSoundVolume = useCallback(async (volume) => {
+        try {
+            if (timerSoundRef.current) {
+                const volumeValue = volume / 100; // Convert 0-100 to 0-1
+                await timerSoundRef.current.setVolumeAsync(volumeValue);
+                console.log(`[HomeScreen] Updated timer sound volume to: ${volumeValue}`);
+            }
+        } catch (err) {
+            console.error('[HomeScreen] Error updating sound volume:', err);
+        }
+    }, []);
+    
+    // Cleanup sound on unmount
+    useEffect(() => {
+        return () => {
+            if (timerSoundRef.current) {
+                timerSoundRef.current.unloadAsync();
+            }
+        };
+    }, []);
+    
+    // Start/stop sound based on timer running state
+    useEffect(() => {
+        // Play sound if timer is running OR in PERSIST mode
+        if ((timerRunning || timerMinutes === -1) && liveSoundId) {
+            playTimerSound(liveSoundId);
+        } else if (!timerRunning && timerMinutes !== -1) {
+            stopTimerSound();
+        }
+        
+        // Cleanup when effect re-runs or unmounts
+        return () => {
+            // Don't stop on every re-render, only when timer stops
+        };
+    }, [timerRunning, liveSoundId, timerMinutes]); // Added timerMinutes to deps
+    
     const startTimer = (minutes) => {
         setRemainingSeconds(minutes * 60);
         setTimerRunning(true);
-        setTimerModalVisible(false);
+        setTimerFadeDownAmount(0); // Reset fade when starting a new timer
+        fadeStartTimeRef.current = null; // Clear fade start time
     };
     
     const stopTimer = () => {
         setTimerRunning(false);
         setRemainingSeconds(0);
+        setTimerFadeDownAmount(0); // Reset fade when manually stopping
+        fadeStartTimeRef.current = null; // Clear fade start time
     };
     
     const formatRemainingTime = (seconds) => {
@@ -128,6 +321,42 @@ const HomeScreen = (pass = {navigation, route}) => {
         const secs = seconds % 60;
         return `${mins}:${String(secs).padStart(2, '0')}`;
     };
+
+    // --- BEGIN: Auto-fade playback volume sync ---
+    // Track the current display volume (including fade) and update playback volume in real time
+    useEffect(() => {
+        // Only update if timer is running or in PERSIST mode
+        if (!(timerRunning || timerMinutes === -1)) return;
+
+        // Get the current volume and fade from VolumeIntensitySlider logic
+        // We'll need to replicate the calculation here
+        const getDisplayVolume = async () => {
+            // Try to get the last set volume from AsyncStorage (same as VolumeIntensitySlider)
+            let baseVolume = 60;
+            try {
+                const tempVolume = await AsyncStorage.getItem('tempVolume');
+                if (tempVolume !== null) {
+                    baseVolume = parseInt(tempVolume, 10);
+                } else {
+                    const savedVolume = await AsyncStorage.getItem('last_volume');
+                    if (savedVolume !== null) {
+                        baseVolume = parseInt(savedVolume, 10);
+                    }
+                }
+            } catch (err) {
+                // fallback to default
+            }
+            // timerFadeDownAmount is 0-100
+            const displayVolume = Math.max(0, baseVolume - (baseVolume * timerFadeDownAmount / 100));
+            return displayVolume;
+        };
+
+        // Update playback volume whenever timerFadeDownAmount or timerRunning changes
+        getDisplayVolume().then((displayVolume) => {
+            updateTimerSoundVolume(Math.round(displayVolume));
+        });
+    }, [timerFadeDownAmount, timerRunning, timerMinutes, updateTimerSoundVolume]);
+    // --- END: Auto-fade playback volume sync ---
 
     return (
     <View style = {{
@@ -172,8 +401,13 @@ const HomeScreen = (pass = {navigation, route}) => {
                     setVolumeAdjustVisible,
                     timerRunning,
                     remainingSeconds,
-                    setTimerModalVisible,
+                    setRemainingSeconds,
+                    timerMinutes,
+                    setTimerMinutes,
+                    startTimer,
                     stopTimer,
+                    timerPulseOpacity,
+                    timerFadeDownAmount,
                     formatRemainingTime,
                     brightnessRefreshTrigger,
                     volumeRefreshTrigger,
@@ -181,7 +415,9 @@ const HomeScreen = (pass = {navigation, route}) => {
                     setVolumeRefreshTrigger,
                     activePresetId,
                     setActivePresetId,
-                    clearActivePreset
+                    clearActivePreset,
+                    setLiveSoundId,
+                    updateTimerSoundVolume
                 }}/>
             </View>
             
@@ -206,13 +442,6 @@ const HomeScreen = (pass = {navigation, route}) => {
             />
             
             {/* Sleep Timer Modal */}
-            <TimerPickerModal 
-                visible={timerModalVisible}
-                onClose={() => setTimerModalVisible(false)}
-                onConfirm={startTimer}
-                initialMinutes={timerMinutes}
-            />
-            
         </ImageBackground>
     </View>
 
@@ -464,9 +693,9 @@ const HomeControlPanel = ({pass}) => {
         } catch (error) {
             console.error('[HomeControlPanel] Error loading presets:', error);
         }
-    }, [pass]);
+    }, []);
 
-    // Load presets on mount
+    // Load presets on mount only
     useEffect(() => {
         loadPresetsData();
     }, [loadPresetsData]);
@@ -511,6 +740,9 @@ const HomeControlPanel = ({pass}) => {
             // Update sound settings in UI (for Preset.js)
             if (preset.soundId !== undefined) {
                 await AsyncStorage.setItem('tempSoundId', preset.soundId);
+                // Update live sound ID for timer playback
+                pass.setLiveSoundId(preset.soundId);
+                console.log('[HomeControlPanel] Set live sound ID:', preset.soundId);
             }
 
             if (preset.isSoundPlaying !== undefined) {
@@ -572,29 +804,47 @@ const HomeControlPanel = ({pass}) => {
 
                         {/* Panel 2: Sleep Timer Panel */}
                         <View style={{ width: containerWidth, justifyContent: 'center', alignItems: 'center' ,padding:20}}>
-                            <Text style={{...textStyles.medium16, color: 'white'}}>Sleep Timer</Text>
-                            <TouchableOpacity 
-                                style = {{
-                                    alignItems:'center', 
-                                    justifyContent:'center', 
-                                    backgroundColor : pass.timerRunning ? 'rgba(121, 59, 196, 0.5)' : 'rgba(255,255,255,0.3)', 
-                                    borderRadius:15,
-                                    height:50,
-                                    width:110,
-                                    top:10
-                                }}
-                                onPress={() => {
-                                    if (pass.timerRunning) {
-                                        pass.stopTimer();
-                                    } else {
-                                        pass.setTimerModalVisible(true);
-                                    }
-                                }}
+                            <Text style={{...textStyles.medium16,top:15,left:20,position:'absolute', opacity: pass.timerRunning ? pass.timerPulseOpacity : 1.0}}>Sleep Timer</Text>
+
+                            {/* Inline timer picker that reflects remaining time */}
+                            <View style={{ opacity: 1.0 }}>
+                                <Picker
+                                    selectedValue={pass.timerRunning ? Math.max(0, Math.ceil(pass.remainingSeconds / 60)) : pass.timerMinutes}
+                                    style={{ width: 140, height: 30, color: 'white' , bottom:23}}
+                                    itemStyle={{ color: 'white', height: 150 }}
+                                    onValueChange={(itemValue) => {
+                                        console.log('[Sleep Timer] User selected:', itemValue, 'minutes');
+                                        if (itemValue === -1) {
+                                            // User selected PERSIST: stop timer and reset fade
+                                            pass.setTimerMinutes(-1);
+                                            pass.stopTimer();
+                                            console.log('[Sleep Timer] PERSIST mode selected');
+                                        } else if (itemValue <= 0) {
+                                            // User dragged to 0: stop timer and reset
+                                            pass.setTimerMinutes(0);
+                                            pass.stopTimer();
+                                            console.log('[Sleep Timer] Timer stopped by user');
+                                        } else {
+                                            // User selected new minutes: update remaining time if running, or set for later start
+                                            if (pass.timerRunning) {
+                                                const newSeconds = itemValue * 60;
+                                                pass.setRemainingSeconds(newSeconds);
+                                                console.log('[Sleep Timer] Updated remaining time while running:', newSeconds, 'seconds');
+                                            } else {
+                                                pass.setTimerMinutes(itemValue);
+                                                pass.startTimer(itemValue);
+                                                console.log('[Sleep Timer] Timer started with:', itemValue, 'minutes');
+                                            }
+                                        }
+                                    }}
                                 >
-                                <Text style ={{...textStyles.medium16, color:'white', fontSize: 20, lineHeight:0 }}>
-                                    {pass.timerRunning ? pass.formatRemainingTime(pass.remainingSeconds) : 'Start'}
-                                </Text>
-                            </TouchableOpacity>
+                                    <Picker.Item key="persist" label="PERSIST" value={-1} />
+                                    {Array.from({ length: 121 }, (_, i) => i).map((num) => (
+                                        <Picker.Item key={num} label={`${num} min`} value={num} />
+                                    ))}
+                                </Picker>
+                            </View>
+
                         </View>
                     </ScrollView>
                     
@@ -622,6 +872,8 @@ const HomeControlPanel = ({pass}) => {
                     <LightIntensitySlider 
                         refreshTrigger={pass.brightnessRefreshTrigger} 
                         onManualChange={pass.clearActivePreset}
+                        timerFadeDownAmount={pass.timerFadeDownAmount}
+                        timerMinutes={pass.timerMinutes}
                     />
                 </TouchableOpacity>                  
                 <TouchableOpacity 
@@ -632,6 +884,9 @@ const HomeControlPanel = ({pass}) => {
                     <VolumeIntensitySlider 
                         refreshTrigger={pass.volumeRefreshTrigger} 
                         onManualChange={pass.clearActivePreset}
+                        timerFadeDownAmount={pass.timerFadeDownAmount}
+                        timerMinutes={pass.timerMinutes}
+                        updateTimerSoundVolume={pass.updateTimerSoundVolume}
                     />
                 </TouchableOpacity>                                             
             </View>
@@ -871,84 +1126,5 @@ const pillow_legacy ={
     position:'relative',
     marginVertical:10,
 }
-
-// Timer Picker Modal Component
-const TimerPickerModal = ({ visible, onClose, onConfirm, initialMinutes = 30 }) => {
-    if (!visible) return null;
-    
-    const [minutes, setMinutes] = useState(initialMinutes);
-    
-    const barWidth = 120;
-    const padding = 20;
-    const mainRadius = 40;
-    const buttonRadius = 20;
-    const bgcolor = '#0C112E';
-    
-    return (
-        <Modal
-            transparent={true}
-            visible={visible}
-            onRequestClose={onClose}
-            animationType="fade"
-        >
-            <TouchableWithoutFeedback onPress={onClose}>
-                <View style={{ ...containers.CenterAJ, backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                    <TouchableWithoutFeedback>
-                        <View
-                            style={{
-                                backgroundColor: bgcolor,
-                                padding: padding,
-                                borderRadius: mainRadius,
-                                borderWidth: 1,
-                                borderColor: '#353951'
-                            }}
-                        >
-                            {/* Header */}
-                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                                <Image 
-                                    source={require('../assets/icons/timer.png')} 
-                                    style={{ height: 25, width: 25, marginRight: 8 }} 
-                                />
-                                <Text style={{ ...textStyles.semibold15, fontSize: 18, color: 'white', opacity: 0.5, lineHeight: 24 }}>
-                                    Sleep Timer
-                                </Text>
-                            </View>
-                            
-                            {/* Picker */}
-                            <View style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
-                                <Picker
-                                    selectedValue={minutes}
-                                    itemStyle={{ width: barWidth, color: 'white' }}
-                                    onValueChange={(itemValue) => setMinutes(itemValue)}
-                                >
-                                    {Array.from({ length: 60 }, (_, i) => i + 1).map((num) => (
-                                        <Picker.Item key={num} label={String(num)} value={num} />
-                                    ))}
-                                </Picker>
-                            </View>
-                            
-                            {/* SET Button */}
-                            <TouchableOpacity
-                                style={{
-                                    backgroundColor: 'rgba(255,255,255,0.15)',
-                                    borderRadius: buttonRadius,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    height: 2 * buttonRadius,
-                                    marginTop: 10
-                                }}
-                                onPress={() => onConfirm(minutes)}
-                            >
-                                <Text style={{ ...textStyles.medium16, color: 'rgba(255,255,255,0.7)', fontSize: 18, fontWeight: 'bold', top: 2 }}>
-                                    SET
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </TouchableWithoutFeedback>
-                </View>
-            </TouchableWithoutFeedback>
-        </Modal>
-    );
-};
 
 export { HomeScreen }
