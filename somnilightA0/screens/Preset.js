@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   Alert, 
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { savePresetsToStorage, loadPresetsFromStorage, saveActivePresetId, loadActivePresetId } from '../utils/PresetStorage';
@@ -67,6 +68,12 @@ const SOUND_OPTIONS = [
   { id: 'valley', name: 'Valley', image: valleyImg },
   { id: 'rain', name: 'Rain', image: rainImg },
 ];
+
+const SOUND_FILES = {
+  forest: require('../assets/sounds/Forest.mp3'),
+  valley: require('../assets/sounds/Valley.mp3'),
+  rain: require('../assets/sounds/Rain.mp3'),
+};
 
 
 const INITIAL_PRESETS = [
@@ -180,13 +187,108 @@ export default function PresetScreen({ navigation }) {
   const activePreset =
     presets.find(p => p.id === activePresetId) || presets[0];
 
-  
+  // Audio playback
+  const soundRef = useRef(null);
+  const isLoadingRef = useRef(false);
+
+  // Initialize audio session on mount
+  useEffect(() => {
+    const initAudio = async () => {
+      try {
+        console.log('[Preset] Initializing audio session...');
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          playsInSilentModeIOS: true,  // Play through silent switch
+          interruptionHandlerIOS: true,
+          staysActiveInBackground: false,
+          playThroughEarpieceAndroidIOS: false,
+          shouldDuckAndroid: true,
+        });
+        console.log('[Preset] Audio session initialized successfully');
+      } catch (err) {
+        console.error('[Preset] Error initializing audio:', err);
+      }
+    };
+
+    initAudio();
+  }, []);
+
+  // Get current preset values BEFORE using them in useEffect
   const brightness = activePreset?.lighting.brightness ?? 80;
   const selectedColor = activePreset?.lighting.colorIndex ?? 3;
   const volume = activePreset?.volume ?? 0.6;
   const isVibrationOn = activePreset?.vibration ?? true;
   const selectedSoundId = activePreset?.soundId ?? 'forest';
   const isSoundPlaying = activePreset?.isSoundPlaying ?? false;
+
+  const playSoundFile = useCallback(async (soundId) => {
+    try {
+      console.log(`[Preset] Attempting to play sound: ${soundId}`);
+      
+      // Stop current sound if playing
+      if (soundRef.current) {
+        console.log('[Preset] Stopping previous sound...');
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+
+      const soundFile = SOUND_FILES[soundId];
+      if (!soundFile) {
+        console.warn(`[Preset] Sound file not found for: ${soundId}`);
+        return;
+      }
+
+      console.log(`[Preset] Creating audio from file: ${soundId}`);
+      isLoadingRef.current = true;
+      const { sound } = await Audio.Sound.createAsync(soundFile, { shouldPlay: false });
+      soundRef.current = sound;
+
+      console.log(`[Preset] Setting loop and playing: ${soundId}`);
+      await sound.setIsLoopingAsync(true);
+      await sound.setVolumeAsync(1.0);
+      const status = await sound.playAsync();
+      console.log(`[Preset] Playback status:`, status);
+      
+      isLoadingRef.current = false;
+      console.log(`[Preset] Now playing: ${soundId}`);
+    } catch (err) {
+      console.error('[Preset] Error playing sound:', err);
+      isLoadingRef.current = false;
+    }
+  }, []);
+
+  const stopSound = useCallback(async () => {
+    try {
+      console.log('[Preset] Stopping sound...');
+      if (soundRef.current) {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        soundRef.current = null;
+      }
+    } catch (err) {
+      console.error('[Preset] Error stopping sound:', err);
+    }
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
+  }, []);
+
+  // Update audio when sound selection or playing state changes
+  useEffect(() => {
+    console.log(`[Preset] Audio state change - isSoundPlaying: ${isSoundPlaying}, selectedSoundId: ${selectedSoundId}`);
+    if (isSoundPlaying && selectedSoundId) {
+      playSoundFile(selectedSoundId);
+    } else {
+      stopSound();
+    }
+  }, [isSoundPlaying, selectedSoundId, playSoundFile, stopSound]);
 
 
   

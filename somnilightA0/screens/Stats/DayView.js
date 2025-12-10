@@ -1,6 +1,3 @@
-// DayView.js
-// Day view: overview, sleep stages, sleep signs (with heart-rate chart)
-
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -28,6 +25,7 @@ const DayView = () => {
   const [sleepEndTime, setSleepEndTime] = useState('--:--');
   const [sleepDurationLabel, setSleepDurationLabel] = useState('--h --m');
   const [sleepTotalMinutes, setSleepTotalMinutes] = useState(null);
+  const [sleepSource, setSleepSource] = useState(null);
 
   // ---------- Sleep stages state ----------
   const [sleepSegments, setSleepSegments] = useState([]);
@@ -83,142 +81,173 @@ const DayView = () => {
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // ==================== Backend requests ====================
-  const fetchSleepScoreAndTime = async (jsDate) => {
-    try {
-      const dateStr = formatToISODate(jsDate);
-      const res = await fetch(`${API_URL}/pillow/sleep/score?date=${dateStr}`);
-      const data = await res.json();
 
-      if (data && data.ok) {
-        const score = data.quality_score || 0;
-        setSleepScore(score);
+  const resetSleepStates = () => {
+    setSleepScore(0);
+    setSleepStartTime('--:--');
+    setSleepEndTime('--:--');
+    setSleepTotalMinutes(null);
+    setSleepDurationLabel('--h --m');
+    setSleepSegments([]);
+    setMinHR(null);
+    setMaxHR(null);
+    setRestingHR(null);
+    setHrSeries([]);
+    setSnoreMinutes(null);
+    setBreathingMin(null);
+    setBreathingMax(null);
+    setBodyMovements(null);
+    setSleepSource(null);
+  };
 
-        const startTime = data.start_time || '--:--';
-        const endTime = data.end_time || '--:--';
-        setSleepStartTime(startTime);
-        setSleepEndTime(endTime);
 
-        const totalMin =
-          typeof data.total_minutes === 'number' ? data.total_minutes : null;
-        setSleepTotalMinutes(totalMin);
+  const applySleepReport = (data) => {
+    if (!data || !data.ok) {
+      resetSleepStates();
+      return;
+    }
 
-        if (totalMin != null) {
-          const h = Math.floor(totalMin / 60);
-          const m = totalMin % 60;
-          setSleepDurationLabel(`${h}h ${m}m`);
-        } else {
-          setSleepDurationLabel('--h --m');
-        }
-      } else {
-        setSleepScore(0);
-        setSleepStartTime('--:--');
-        setSleepEndTime('--:--');
-        setSleepTotalMinutes(null);
-        setSleepDurationLabel('--h --m');
-      }
-    } catch (e) {
-      console.error('Error fetching sleep score:', e);
-      setSleepScore(0);
-      setSleepStartTime('--:--');
-      setSleepEndTime('--:--');
-      setSleepTotalMinutes(null);
+    setSleepSource(data.source || null); 
+
+    const summary = data.summary || {};
+    const stages = data.stages || {};
+    const hr = data.hr || {};
+    const signs = data.signs || {};
+    const scoreObj = data.score || {};
+
+    // ---- score&time ----
+    const scoreVal =
+      typeof summary.quality_score === 'number'
+        ? summary.quality_score
+        : typeof scoreObj.value === 'number'
+        ? scoreObj.value
+        : 0;
+    setSleepScore(scoreVal);
+
+    const startTime = summary.start_time || '--:--';
+    const endTime = summary.end_time || '--:--';
+    setSleepStartTime(startTime);
+    setSleepEndTime(endTime);
+
+    const totalMin =
+      typeof summary.total_minutes === 'number'
+        ? summary.total_minutes
+        : null;
+    setSleepTotalMinutes(totalMin);
+
+    if (totalMin != null) {
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      setSleepDurationLabel(`${h}h ${m}m`);
+    } else {
       setSleepDurationLabel('--h --m');
     }
+
+    // ---- sleep stage----
+    let rawSegments = [];
+
+    if (Array.isArray(stages.segments)) {
+      rawSegments = stages.segments;
+    } else if (Array.isArray(stages)) {
+      rawSegments = stages;
+    } else if (stages.summary) {
+      const s = stages.summary;
+      rawSegments = [];
+      if (s.awake > 0) rawSegments.push({ stage: 'Awake', duration: s.awake });
+      if (s.light > 0) rawSegments.push({ stage: 'Light', duration: s.light });
+      if (s.deep > 0) rawSegments.push({ stage: 'Deep', duration: s.deep });
+      if (s.rem > 0) rawSegments.push({ stage: 'REM', duration: s.rem });
+    }
+
+    const mapped = rawSegments.map((seg) => ({
+      stage: seg.stage === 'Light' ? 'Core' : seg.stage,
+      duration: seg.duration,
+    }));
+    setSleepSegments(mapped);
+
+    // ---- hr ----
+    setMinHR(typeof hr.hr_min === 'number' ? hr.hr_min : null);
+    setMaxHR(typeof hr.hr_max === 'number' ? hr.hr_max : null);
+    setRestingHR(typeof hr.hr_avg === 'number' ? hr.hr_avg : null);
+    setHrSeries(Array.isArray(hr.series) ? hr.series : []);
+
+    // ---- sign ----
+    setSnoreMinutes(
+      typeof signs.snore_minutes === 'number' ? signs.snore_minutes : null,
+    );
+    setBreathingMin(
+      typeof signs.breathing_min === 'number' ? signs.breathing_min : null,
+    );
+    setBreathingMax(
+      typeof signs.breathing_max === 'number' ? signs.breathing_max : null,
+    );
+    setBodyMovements(
+      typeof signs.body_movements === 'number'
+        ? signs.body_movements
+        : null,
+    );
   };
 
-  const fetchSleepStages = async (jsDate) => {
+
+  const fetchSleepReport = async (jsDate) => {
     try {
       const dateStr = formatToISODate(jsDate);
-      const res = await fetch(
-        `${API_URL}/pillow/sleep/stages?date=${dateStr}`,
-      );
-      const data = await res.json();
+      let report = null;
 
-      if (data && data.ok) {
-        const raw = Array.isArray(data.segments) ? data.segments : [];
-        const mapped = raw.map((seg) => ({
-          stage: seg.stage === 'Light' ? 'Core' : seg.stage,
-          duration: seg.duration,
-        }));
-        setSleepSegments(mapped);
-      } else {
-        setSleepSegments([]);
+
+      try {
+        const mqttRes = await fetch(
+          `${API_URL}/pillow/sleep/night?date=${dateStr}`,
+        );
+        if (mqttRes.ok) {
+          const mqttData = await mqttRes.json();
+          if (mqttData && mqttData.ok) {
+            console.log('使用 MQTT 数据');
+            report = mqttData;
+          }
+        }
+      } catch (err) {
+        console.log('获取 MQTT night 失败，将尝试 HTTP 模拟数据', err);
       }
+
+
+      if (!report) {
+        try {
+          const httpRes = await fetch(
+            `${API_URL}/pillow/sleep/15days_default?date=${dateStr}`,
+          );
+          const httpData = await httpRes.json();
+
+          if (httpData && httpData.ok) {
+            console.log('使用 HTTP 模拟数据');
+            report = httpData;
+          }
+        } catch (err) {
+          console.log('获取 HTTP 模拟数据失败', err);
+        }
+      }
+
+      if (!report) {
+        resetSleepStates();
+        return;
+      }
+
+      applySleepReport(report);
     } catch (e) {
-      console.error('Error fetching sleep stages:', e);
-      setSleepSegments([]);
+      console.error('Error fetching sleep report:', e);
+      resetSleepStates();
     }
   };
 
-  const fetchHeartRateData = async (jsDate) => {
-    try {
-      const dateStr = formatToISODate(jsDate);
-      const res = await fetch(`${API_URL}/pillow/sleep/hr?date=${dateStr}`);
-      const data = await res.json();
-
-      if (data && data.ok) {
-        setMinHR(typeof data.hr_min === 'number' ? data.hr_min : null);
-        setMaxHR(typeof data.hr_max === 'number' ? data.hr_max : null);
-        setRestingHR(typeof data.hr_avg === 'number' ? data.hr_avg : null);
-        setHrSeries(Array.isArray(data.series) ? data.series : []);
-      } else {
-        setMinHR(null);
-        setMaxHR(null);
-        setRestingHR(null);
-        setHrSeries([]);
-      }
-    } catch (e) {
-      console.error('Error fetching heart rate:', e);
-      setMinHR(null);
-      setMaxHR(null);
-      setRestingHR(null);
-      setHrSeries([]);
-    }
-  };
-
-  const fetchSleepSigns = async (jsDate) => {
-    try {
-      const dateStr = formatToISODate(jsDate);
-      const res = await fetch(`${API_URL}/pillow/sleep/signs?date=${dateStr}`);
-      const data = await res.json();
-
-      if (data && data.ok) {
-        setSnoreMinutes(
-          typeof data.snore_minutes === 'number' ? data.snore_minutes : null,
-        );
-        setBreathingMin(
-          typeof data.breathing_min === 'number' ? data.breathing_min : null,
-        );
-        setBreathingMax(
-          typeof data.breathing_max === 'number' ? data.breathing_max : null,
-        );
-        setBodyMovements(
-          typeof data.body_movements === 'number'
-            ? data.body_movements
-            : null,
-        );
-      } else {
-        setSnoreMinutes(null);
-        setBreathingMin(null);
-        setBreathingMax(null);
-        setBodyMovements(null);
-      }
-    } catch (e) {
-      console.error('Error fetching sleep signs:', e);
-      setSnoreMinutes(null);
-      setBreathingMin(null);
-      setBreathingMax(null);
-      setBodyMovements(null);
-    }
-  };
 
   useEffect(() => {
-    fetchSleepScoreAndTime(selectedDate);
-    fetchSleepStages(selectedDate);
-    fetchHeartRateData(selectedDate);
-    fetchSleepSigns(selectedDate);
+    fetchSleepReport(selectedDate);
   }, [selectedDate]);
 
+
+  const handleRefreshToday = () => {
+    fetchSleepReport(selectedDate);
+  };
   // ==================== Heart rate path and vertical axis ====================
   useEffect(() => {
     if (!hrSeries || hrSeries.length === 0) {

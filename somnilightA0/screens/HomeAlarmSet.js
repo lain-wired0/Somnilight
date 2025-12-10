@@ -1265,7 +1265,7 @@ const PresetCell = ({baseIcon, title, value, options = [], onSelect, navigation}
     const hasOptions = optionNames.length > 0;
     const displayValue = hasOptions ? (value || optionNames[0]) : 'No presets';
     
-    console.log('[PresetCell] value:', value, 'options:', options, 'displayValue:', displayValue);
+    //console.log('[PresetCell] value:', value, 'options:', options, 'displayValue:', displayValue);
 
     // Get cover image for selected preset
     const selectedIcon = (() => {

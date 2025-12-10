@@ -6,15 +6,19 @@ import { textStyles, ele } from '../styles';
 const SLIDER_WIDTH = 120;
 const SLIDER_TRACK_HEIGHT = 320;
 const HANDLE_HEIGHT = 30;
+const THROTTLE_INTERVAL = 200; // Throttle volume/music sends
 
 const SERVER_URL = 'http://150.158.158.233:1880';
 
-export default function VolumeAdjust({ onClose, showHandle = false }) {
+export default function VolumeAdjust({ onClose, showHandle = false, onManualChange }) {
   const [volume, setVolume] = useState(60);
   const [musicIndex, setMusicIndex] = useState(0);
 
+  const volumeRef = useRef(60);
   const startVolumeRef = useRef(60);
   const lastSendTime = useRef(0);
+  const abortControllerVolumeRef = useRef(null);
+  const abortControllerMusicRef = useRef(null);
 
   const MUSIC_OPTIONS = [
     require('../assets/general_images/preRain.png'),
@@ -28,75 +32,189 @@ export default function VolumeAdjust({ onClose, showHandle = false }) {
   useEffect(() => {
     const loadState = async () => {
       try {
-        const localVolume = await AsyncStorage.getItem('last_volume');
-        const localMusic = await AsyncStorage.getItem('last_music');
-
-        if (localVolume !== null) {
-          const v = parseInt(localVolume, 10);
+        // First check for temporary preset values (one-way from preset)
+        const tempVolume = await AsyncStorage.getItem('tempVolume');
+        const tempSoundId = await AsyncStorage.getItem('tempSoundId');
+        
+        if (tempVolume !== null) {
+          const v = parseInt(tempVolume, 10);
           setVolume(v);
+          volumeRef.current = v;
           startVolumeRef.current = v;
+          console.log('[VolumeAdjust] Loaded temp volume from preset:', v);
         }
-        if (localMusic !== null) setMusicIndex(parseInt(localMusic, 10));
-
-        // Fetch server state
-        const res = await fetch(`${SERVER_URL}/get_state`);
-        if (res.ok) {
-          const json = await res.json();
-
-          if (json.volume !== undefined) {
-            setVolume(json.volume);
-            AsyncStorage.setItem('last_volume', json.volume.toString());
+        
+        // Map sound IDs to music indices if temp sound provided
+        if (tempSoundId !== null) {
+          const soundIdToIndex = {
+            'rain': 0,
+            'valley': 1,
+            'forest': 2,
+            'sea': 3,
+          };
+          const idx = soundIdToIndex[tempSoundId];
+          if (idx !== undefined) {
+            setMusicIndex(idx);
+            console.log('[VolumeAdjust] Loaded temp sound from preset:', tempSoundId);
           }
-          if (json.music !== undefined) {
-            setMusicIndex(json.music);
-            AsyncStorage.setItem('last_music', json.music.toString());
+        }
+        
+        // If no preset values, load from regular storage
+        if (tempVolume === null) {
+          const localVolume = await AsyncStorage.getItem('last_volume');
+          if (localVolume !== null) {
+            const v = parseInt(localVolume, 10);
+            setVolume(v);
+            volumeRef.current = v;
+            startVolumeRef.current = v;
+          }
+        }
+        
+        if (tempSoundId === null) {
+          const localMusic = await AsyncStorage.getItem('last_music');
+          if (localMusic !== null) setMusicIndex(parseInt(localMusic, 10));
+        }
+
+        // Fetch server state from /get_volume endpoint (only if no preset temp values)
+        if (tempVolume === null) {
+          try {
+            const res = await fetch(`${SERVER_URL}/get_volume`);
+            if (res.ok) {
+              const json = await res.json();
+              if (json.volume !== undefined) {
+                setVolume(json.volume);
+                volumeRef.current = json.volume;
+                AsyncStorage.setItem('last_volume', json.volume.toString());
+              }
+            } else {
+              console.warn(`[VolumeAdjust] GET /get_volume returned status: ${res.status}`);
+            }
+          } catch (err) {
+            console.error('[VolumeAdjust] GET /get_volume failed:', err);
           }
         }
       } catch (err) {
-        console.error('Load State Error:', err);
+        console.error('[VolumeAdjust] Load State Error:', err);
       }
     };
 
     loadState();
   }, []);
 
-  // send volume to Node-RED
+  // Cleanup: Clear temp values when modal closes
+  useEffect(() => {
+    return () => {
+      // When component unmounts, clear temp preset values so they don't persist
+      AsyncStorage.removeItem('tempVolume').catch(() => {});
+      AsyncStorage.removeItem('tempSoundId').catch(() => {});
+      AsyncStorage.removeItem('tempSoundPlaying').catch(() => {});
+    };
+  }, []);
+
+  // send volume to Node-RED with throttling and timeout
   const sendVolumeToServer = useCallback(async (value) => {
     const now = Date.now();
-    if (now - lastSendTime.current < 200) {
-      AsyncStorage.setItem('last_volume', value.toString());
+    const timeSinceLastSend = now - lastSendTime.current;
+
+    console.log(`[VolumeAdjust] sendVolumeToServer called, time since last: ${timeSinceLastSend}ms, value: ${value}`);
+
+    // Throttle: skip if within interval
+    if (timeSinceLastSend < THROTTLE_INTERVAL) {
+      console.log(`[VolumeAdjust] THROTTLED (${timeSinceLastSend}ms < ${THROTTLE_INTERVAL}ms)`);
+      AsyncStorage.setItem('last_volume', value.toString()).catch(() => {});
       return;
     }
+
+    console.log(`[VolumeAdjust] SENDING to server: { volume: ${value} }`);
     lastSendTime.current = now;
 
-    AsyncStorage.setItem('last_volume', value.toString());
+    // Cancel any pending request
+    if (abortControllerVolumeRef.current) {
+      abortControllerVolumeRef.current.abort();
+      console.log('[VolumeAdjust] Cancelled previous volume request');
+    }
+
+    // Save locally
+    AsyncStorage.setItem('last_volume', value.toString()).catch(() => {});
 
     try {
-      await fetch(`${SERVER_URL}/set_volume`, {
+      const controller = new AbortController();
+      abortControllerVolumeRef.current = controller;
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
+      const response = await fetch(`${SERVER_URL}/set_volume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ volume: value }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+      abortControllerVolumeRef.current = null;
+
+      if (!response.ok) {
+        console.warn(`[VolumeAdjust] POST /set_volume returned status: ${response.status}`);
+        return;
+      }
+
+      const json = await response.json();
+      console.log(`[VolumeAdjust] POST /set_volume success:`, json);
     } catch (err) {
-      console.error('POST /set_volume Error:', err);
+      if (err.name === 'AbortError') {
+        console.log('[VolumeAdjust] POST /set_volume timeout after 3s (no response)');
+      } else {
+        console.error('[VolumeAdjust] POST /set_volume Error:', err);
+      }
     }
   }, []);
 
-  // send music index
-  const sendMusicToServer = async (index) => {
+  // send music index to Node-RED with timeout
+  const sendMusicToServer = useCallback(async (index) => {
+    console.log(`[VolumeAdjust] sendMusicToServer called, index: ${index}`);
+
     setMusicIndex(index);
-    AsyncStorage.setItem('last_music', index.toString());
+    AsyncStorage.setItem('last_music', index.toString()).catch(() => {});
+    
+    // Clear active preset when user makes manual adjustment
+    onManualChange?.();
+
+    // Cancel any pending request
+    if (abortControllerMusicRef.current) {
+      abortControllerMusicRef.current.abort();
+      console.log('[VolumeAdjust] Cancelled previous music request');
+    }
 
     try {
-      await fetch(`${SERVER_URL}/set_music`, {
+      const controller = new AbortController();
+      abortControllerMusicRef.current = controller;
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
+      console.log(`[VolumeAdjust] SENDING to server: { music: ${index} }`);
+      const response = await fetch(`${SERVER_URL}/set_music`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ music: index }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+      abortControllerMusicRef.current = null;
+
+      if (!response.ok) {
+        console.warn(`[VolumeAdjust] POST /set_music returned status: ${response.status}`);
+        return;
+      }
+
+      const json = await response.json();
+      console.log(`[VolumeAdjust] POST /set_music success:`, json);
     } catch (err) {
-      console.error('POST /set_music Error:', err);
+      if (err.name === 'AbortError') {
+        console.log('[VolumeAdjust] POST /set_music timeout after 3s (no response)');
+      } else {
+        console.error('[VolumeAdjust] POST /set_music Error:', err);
+      }
     }
-  };
+  }, []);
 
   // slider
   const sliderRef = useRef(null);
@@ -108,6 +226,8 @@ export default function VolumeAdjust({ onClose, showHandle = false }) {
       onPanResponderGrant: (evt) => {
         // Store initial touch position for direct manipulation
         startVolumeRef.current = volume;
+        // Clear active preset when user makes manual adjustment
+        onManualChange?.();
       },
 
       onPanResponderMove: (evt, gestureState) => {
@@ -124,13 +244,14 @@ export default function VolumeAdjust({ onClose, showHandle = false }) {
           newVolume = Math.max(0, Math.min(100, Math.round(newVolume)));
           
           setVolume(newVolume);
+          volumeRef.current = newVolume;
           sendVolumeToServer(newVolume);
         });
       },
 
       onPanResponderRelease: () => {
-        // Final confirmation
-        sendVolumeToServer(volume);
+        // Final confirmation - use ref to get latest value
+        sendVolumeToServer(volumeRef.current);
       },
     })
   ).current;
@@ -251,6 +372,7 @@ const styles = StyleSheet.create({
   musicRow: {
     flexDirection: 'row',
     marginTop: 40,
+    paddingHorizontal:20,
     width: '90%',
     justifyContent: 'space-between'
   },
@@ -266,5 +388,5 @@ const styles = StyleSheet.create({
     borderColor: '#ffffff',
     backgroundColor: 'rgba(255,255,255,0.35)'
   },
-  musicIcon: { width: 30, height: 30, resizeMode: 'contain' }
+  musicIcon: { width: 40, height: 40, resizeMode: 'contain', borderRadius:20 }
 });

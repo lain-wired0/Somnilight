@@ -42,13 +42,18 @@ export const loadPresetsFromStorage = async () => {
 
 /**
  * Saves the currently active preset ID
- * @param {string} presetId - The ID of the active preset
+ * @param {string|null} presetId - The ID of the active preset, or null to clear
  * @returns {Promise<void>}
  */
 export const saveActivePresetId = async (presetId) => {
   try {
-    await AsyncStorage.setItem(ACTIVE_PRESET_ID_KEY, presetId);
-    console.log('[PresetStorage] Active preset ID saved:', presetId);
+    if (presetId === null || presetId === undefined) {
+      await AsyncStorage.removeItem(ACTIVE_PRESET_ID_KEY);
+      console.log('[PresetStorage] Active preset ID cleared');
+    } else {
+      await AsyncStorage.setItem(ACTIVE_PRESET_ID_KEY, presetId);
+      console.log('[PresetStorage] Active preset ID saved:', presetId);
+    }
   } catch (error) {
     console.error('[PresetStorage] Error saving active preset ID:', error);
     throw error;
