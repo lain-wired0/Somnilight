@@ -1,6 +1,5 @@
 //Fundamentals
 import { StatusBar } from 'expo-status-bar';
-import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
@@ -19,7 +18,7 @@ import { iconStyles } from './styles';
 
 //Screens [.js]
 import { HomeScreen, HomeStack } from './screens/Home';
-import { StatsScreen } from './screens/Stats';
+import { StatsScreen } from './screens/Stats/Stats';
 import { MyinfoScreen } from './screens/Myinfo';
 import { HoverEffect } from 'react-native-gesture-handler';
 import PresetScreen from './screens/Preset';
@@ -54,7 +53,7 @@ function RootTabs() {
   return(
   <Tabs.Navigator 
       screenOptions={ ( {route} ) => ({
-        headerShown: (route.name !== 'Home'),
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: 'rgba(33,29,80,0.8)',
           opacity: 80,
@@ -120,3 +119,4 @@ const deviceHeight = 852
 export { deviceHeight, deviceWidth }
 
 
+;
