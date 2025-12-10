@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Image, ImageBackground, Text, View, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Switch, Button, Modal, ScrollView } from 'react-native';
+import React, { useState, useEffect, useRef ,useCallback, useMemo} from 'react';
+import { Image, ImageBackground, Text, View, TouchableOpacity, TouchableWithoutFeedback, StyleSheet, Switch, Button, ScrollView, Modal } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Picker } from '@react-native-picker/picker';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,7 +13,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 //Dragable view
-import { useCallback, useMemo, useRef } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
@@ -62,6 +62,56 @@ export function HomeStack() {
 const HomeScreen = (pass = {navigation, route}) => {
     const [lightAdjustVisible, setLightAdjustVisible] = useState(false);
     const [volumeAdjustVisible, setVolumeAdjustVisible] = useState(false);
+    
+    // Sleep Timer State
+    const [timerModalVisible, setTimerModalVisible] = useState(false);
+    const [timerMinutes, setTimerMinutes] = useState(30); // Default 30 minutes
+    const [timerRunning, setTimerRunning] = useState(false);
+    const [remainingSeconds, setRemainingSeconds] = useState(0);
+    const timerIntervalRef = useRef(null);
+    
+    // Timer countdown effect
+    useEffect(() => {
+        if (timerRunning && remainingSeconds > 0) {
+            timerIntervalRef.current = setInterval(() => {
+                setRemainingSeconds(prev => {
+                    if (prev <= 1) {
+                        setTimerRunning(false);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        } else {
+            if (timerIntervalRef.current) {
+                clearInterval(timerIntervalRef.current);
+                timerIntervalRef.current = null;
+            }
+        }
+        
+        return () => {
+            if (timerIntervalRef.current) {
+                clearInterval(timerIntervalRef.current);
+            }
+        };
+    }, [timerRunning, remainingSeconds]);
+    
+    const startTimer = (minutes) => {
+        setRemainingSeconds(minutes * 60);
+        setTimerRunning(true);
+        setTimerModalVisible(false);
+    };
+    
+    const stopTimer = () => {
+        setTimerRunning(false);
+        setRemainingSeconds(0);
+    };
+    
+    const formatRemainingTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${String(secs).padStart(2, '0')}`;
+    };
 
     return (
     <View style = {{
@@ -98,7 +148,18 @@ const HomeScreen = (pass = {navigation, route}) => {
             <View style = {{
                 ...StyleSheet.absoluteFill
             }}>
-                <HomeConfigSlide pass = {{...pass, lightAdjustVisible, setLightAdjustVisible, volumeAdjustVisible, setVolumeAdjustVisible}}/>
+                <HomeConfigSlide pass = {{
+                    ...pass, 
+                    lightAdjustVisible, 
+                    setLightAdjustVisible, 
+                    volumeAdjustVisible, 
+                    setVolumeAdjustVisible,
+                    timerRunning,
+                    remainingSeconds,
+                    setTimerModalVisible,
+                    stopTimer,
+                    formatRemainingTime
+                }}/>
             </View>
             
             {/* Light Adjust Modal */}
@@ -106,6 +167,14 @@ const HomeScreen = (pass = {navigation, route}) => {
             
             {/* Volume Adjust Modal */}
             <VolumeAdjustModal visible={volumeAdjustVisible} onClose={() => setVolumeAdjustVisible(false)} />
+            
+            {/* Sleep Timer Modal */}
+            <TimerPickerModal 
+                visible={timerModalVisible}
+                onClose={() => setTimerModalVisible(false)}
+                onConfirm={startTimer}
+                initialMinutes={timerMinutes}
+            />
             
         </ImageBackground>
     </View>
@@ -379,20 +448,30 @@ const HomeControlPanel = ({pass}) => {
                             <HomeAlarmSetPanel pass={pass}/>
                         </View>
 
-                        {/* Panel 2: Sleep Mode Panel */}
+                        {/* Panel 2: Sleep Timer Panel */}
                         <View style={{ width: containerWidth, justifyContent: 'center', alignItems: 'center' ,padding:20}}>
                             <Text style={{...textStyles.medium16, color: 'white'}}>Sleep Timer</Text>
                             <TouchableOpacity 
                                 style = {{
                                     alignItems:'center', 
                                     justifyContent:'center', 
-                                    backgroundColor :'rgba(255,255,255,0.3)', 
-                                    borderRadius:15,height:50,width:110,top:10
+                                    backgroundColor : pass.timerRunning ? 'rgba(121, 59, 196, 0.5)' : 'rgba(255,255,255,0.3)', 
+                                    borderRadius:15,
+                                    height:50,
+                                    width:110,
+                                    top:10
                                 }}
-                                onPress={{/*call picker modal here */}}
+                                onPress={() => {
+                                    if (pass.timerRunning) {
+                                        pass.stopTimer();
+                                    } else {
+                                        pass.setTimerModalVisible(true);
+                                    }
+                                }}
                                 >
-
-                                <Text style ={{...textStyles.medium16, color:'white'}}>Start</Text>
+                                <Text style ={{...textStyles.medium16, color:'white', fontSize: pass.timerRunning ? 20 : 16}}>
+                                    {pass.timerRunning ? pass.formatRemainingTime(pass.remainingSeconds) : 'Start'}
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
@@ -668,4 +747,84 @@ const pillow_legacy ={
     position:'relative',
     marginVertical:10,
 }
+
+// Timer Picker Modal Component
+const TimerPickerModal = ({ visible, onClose, onConfirm, initialMinutes = 30 }) => {
+    if (!visible) return null;
+    
+    const [minutes, setMinutes] = useState(initialMinutes);
+    
+    const barWidth = 120;
+    const padding = 20;
+    const mainRadius = 40;
+    const buttonRadius = 20;
+    const bgcolor = '#0C112E';
+    
+    return (
+        <Modal
+            transparent={true}
+            visible={visible}
+            onRequestClose={onClose}
+            animationType="fade"
+        >
+            <TouchableWithoutFeedback onPress={onClose}>
+                <View style={{ ...containers.CenterAJ, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <TouchableWithoutFeedback>
+                        <View
+                            style={{
+                                backgroundColor: bgcolor,
+                                padding: padding,
+                                borderRadius: mainRadius,
+                                borderWidth: 1,
+                                borderColor: '#353951'
+                            }}
+                        >
+                            {/* Header */}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                                <Image 
+                                    source={require('../assets/icons/timer.png')} 
+                                    style={{ height: 25, width: 25, marginRight: 8 }} 
+                                />
+                                <Text style={{ ...textStyles.semibold15, fontSize: 18, color: 'white', opacity: 0.5, lineHeight: 24 }}>
+                                    Sleep Timer
+                                </Text>
+                            </View>
+                            
+                            {/* Picker */}
+                            <View style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'row' }}>
+                                <Picker
+                                    selectedValue={minutes}
+                                    itemStyle={{ width: barWidth, color: 'white' }}
+                                    onValueChange={(itemValue) => setMinutes(itemValue)}
+                                >
+                                    {Array.from({ length: 60 }, (_, i) => i + 1).map((num) => (
+                                        <Picker.Item key={num} label={String(num)} value={num} />
+                                    ))}
+                                </Picker>
+                            </View>
+                            
+                            {/* SET Button */}
+                            <TouchableOpacity
+                                style={{
+                                    backgroundColor: 'rgba(255,255,255,0.15)',
+                                    borderRadius: buttonRadius,
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    height: 2 * buttonRadius,
+                                    marginTop: 10
+                                }}
+                                onPress={() => onConfirm(minutes)}
+                            >
+                                <Text style={{ ...textStyles.medium16, color: 'rgba(255,255,255,0.7)', fontSize: 18, fontWeight: 'bold', top: 2 }}>
+                                    SET
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </TouchableWithoutFeedback>
+                </View>
+            </TouchableWithoutFeedback>
+        </Modal>
+    );
+};
+
 export { HomeScreen }

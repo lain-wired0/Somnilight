@@ -1,166 +1,258 @@
 # Somnilight AI Coding Instructions
 
 ## Project Overview
-Somnilight is a React Native + Expo mobile app for smart alarm/light control with a Node-RED backend integration. The app manages sleep schedules and allows users to adjust light brightness and color through an intuitive UI.
+Somnilight is a React Native + Expo mobile app for smart alarm/light control with dual-backend integration (Node-RED for device control + health data API). The app manages sleep schedules, controls smart lights/sound, tracks sleep metrics, and manages preset configurations.
 
-**Key Technologies:**
+**Tech Stack:**
 - React Native 0.81.5 with Expo 54.0.25
-- React Navigation (bottom tabs + native stack)
-- Gesture-based controls (react-native-gesture-handler)
-- UI: BlurView, LinearGradient, Bottom sheets, Custom sliders
-- Backend: Node-RED API at `http://somnilight.online:1880/`
+- React Navigation (bottom tabs + nested stacks)
+- AsyncStorage for local caching
+- Custom gesture controls (PanResponder)
+- Backend: Node-RED at `http://somnilight.online:1880/` and health API at `http://150.158.158.233:1880/`
 
 ---
 
-## Architecture & Key Patterns
+## Navigation Architecture
 
-### Navigation Structure
 ```
-App.js (root)
-├── RootTabs (BottomTabNavigator)
-│   ├── HomeStack (Native Stack)
-│   │   ├── Home (HomeScreen)
-│   │   └── LightAdjust
-│   ├── Stats (StatsScreen)
-│   └── Myinfo (MyinfoScreen)
-└── HomeAlarmSet (modal-like screen)
+App.js (NavigationContainer root)
+├── Stacks.Navigator (root stack)
+│   ├── RootTabs (screen, renders BottomTabNavigator)
+│   │   ├── Home (tab, renders HomeStack)
+│   │   │   └── HomeStack (NativeStackNavigator)
+│   │   │       └── Home (screen: HomeScreen)
+│   │   ├── Stats (tab: StatsScreen with Day/Week/Month views)
+│   │   └── Myinfo (tab: MyinfoScreen)
+│   ├── HomeAlarmSet (screen: modal-style alarm editor)
+│   └── Preset (screen: preset manager with arc sliders)
 ```
 
-**Pattern:** Bottom-tab navigation wraps Home in a stack to allow nested navigation. `HomeAlarmSet` is registered as a separate root stack screen for modal-like behavior accessed via `navigation.navigate('HomeAlarmSet')`.
+**Critical Pattern:** New screens must be added to the root `Stacks.Navigator` in `App.js` (NOT to individual tabs) if they need cross-navigation access. The `HomeStack` is a nested navigator inside the `Home` tab to allow future screen additions within that flow.
 
-### Shared State & Data
-- **Hardcoded constants:** Live alarm settings defined as `liveAlarmSettings` object in `HomeAlarmSet.js` (bedtime, sunrise, wakeup times, repeat days, preset_id)
-- **Device dimensions:** Exported from `App.js` as `deviceHeight` (852) and `deviceWidth` (393)
-- **Backend sync:** `LightAdjust.js` fetches initial brightness from Node-RED on mount and sends updates via API
-
-### Styling Approach
-Centralized in `styles.js` using React Native's `StyleSheet.create()`:
-- **textStyles:** PingFang font variants (medium16, reg11, semibold15)
-- **containers:** Reusable layouts (CenterAJ for flex center, violetLight/Dark containers with alpha)
-- **colors:** Edge borders, tab bar transparency using RGBA
-- **ele:** Icon sizes and generic borders
-
-**Pattern:** Apply styles via spread operator (e.g., `{...textStyles.semibold15}`). Theme color is white with dark purple/violet containers.
+**Navigation Commands:**
+```javascript
+navigation.navigate('HomeAlarmSet')  // From any screen to alarm editor
+navigation.navigate('Preset')         // From any screen to preset manager
+navigation.goBack()                   // Return to previous screen
+```
 
 ---
 
-## Component Patterns
+## Data Architecture & State Management
 
-### Screen Components
-Each screen file exports a component (capitalized for default/named export):
-- `HomeScreen`: Main hub with preset buttons, current alarm info, gesture navigation to `LightAdjust`
-- `HomeAlarmSetScreen`: Alarm configuration panel with day selector, time pickers, preset selector
-- `LightAdjust`: Brightness/color slider with gesture responder and Node-RED API calls
-- `StatsScreen`, `MyinfoScreen`: Placeholder screens (CenterAJ container + label)
+### Three-Layer Storage Model
+1. **UI State:** React `useState` hooks in components (ephemeral)
+2. **Local Cache:** AsyncStorage (persists across app restarts)
+3. **Server Sync:** Debounced API calls to Node-RED backend
 
-**Pattern:** Screens use `navigation` prop from React Navigation; access via `navigation.navigate(screenName)` or `navigation.goBack()`.
+**Critical Flow Example (HomeAlarmSet.js):**
+```javascript
+// User edits alarm → Update state → Save to AsyncStorage → Debounced sync to server
+useEffect(() => {
+  const alarmConfig = { bedtime, sunrise_time, wakeup_time, days, preset_id, ... };
+  AsyncStorage.setItem('activeAlarmConfig', JSON.stringify(alarmConfig));
+  syncAlarmToServerDebounced(alarmConfig, retryCallback); // From utils/ServerSync.js
+}, [bedtimeHour, bedtimeMin, sunriseHour, ...]);
+```
 
-### Sub-components (Local)
-Defined within screen files as functional components:
-- `DaySetCell`: Day of week button (Mo, Tu, We, etc.)
-- `TimeSetCell`: Time selector with animation
-- `OtherSetCell`: Label + value display (alarm name, preset, interval)
-- `CusHeader`: Custom header with back button and title
-
-**Pattern:** Accept props (`{navigation, title, live, DoW, etc.}`), use inline styles or style spreads, no separate files.
-
-### Gesture & Interaction
-- **PanResponder** in `LightAdjust.js`: Tracks vertical drag for brightness slider
-- **TouchableOpacity/TouchableHighlight:** Standard press handlers
-- **Modal:** `react-native-modal` for custom modals (e.g., time picker in `HomeAlarmSet`)
-- **Bottom sheets:** `@gorhom/bottom-sheet` with gesture handler (seen in `App-bottom.js`, not yet integrated)
+### Shared Constants
+- **Device dimensions:** Exported from `App.js` as `deviceHeight` (852) and `deviceWidth` (393) - hardcoded for specific device
+- **Alarm configs:** Stored in AsyncStorage with key `'alarmConfigs'` as JSON object mapping alarm names to config objects
+- **Presets:** Managed via `utils/PresetStorage.js` with functions `savePresetsToStorage()`, `loadPresetsFromStorage()`
 
 ---
 
-## Build & Deployment
+## Backend Integration Patterns
 
-### Development Commands
+### Server Endpoints (utils/ServerSync.js)
+```javascript
+// Alarm sync (debounced to 5s intervals)
+POST http://somnilight.online:1880/pillow/alarm
+Body: { bedtime, sunrise_time, wakeup_time, days, name, preset_id, repeat_interval_min }
+
+// Device control
+POST http://150.158.158.233:1880/set_state
+Body: { brightness: 0-100, color: "#RRGGBB" }
+
+GET http://150.158.158.233:1880/get_state
+Response: { brightness, color, volume, music }
+
+// Sleep data (Stats screen)
+GET http://somnilight.online:1880/pillow/sleep/score?date=YYYY-MM-DD
+GET http://somnilight.online:1880/pillow/sleep/stages?date=YYYY-MM-DD&period=day
+GET http://somnilight.online:1880/pillow/sleep/hr?date=YYYY-MM-DD
+```
+
+**Debouncing Pattern:** Use `syncAlarmToServerDebounced()` from `utils/ServerSync.js` for frequent updates. It prevents server overload by batching changes within 5-second windows and guarantees final state upload via `flushPendingSync()`.
+
+**Throttling Pattern (LightAdjust.js):** Device control uses 200ms throttle + AbortController to cancel pending requests:
+```javascript
+const THROTTLE_INTERVAL = 200;
+const lastSendTime = useRef(0);
+const abortControllerRef = useRef(null);
+
+if (abortControllerRef.current) {
+  abortControllerRef.current.abort(); // Cancel previous request
+}
+const controller = new AbortController();
+abortControllerRef.current = controller;
+await fetch(url, { signal: controller.signal, ... });
+```
+
+---
+
+## Custom Gesture Components
+
+### CircularAlarmSetPanel (screens/CircularAlarmSetPanel.js)
+Circular time picker with three draggable handles (bedtime, sunrise, wakeup). Uses PanResponder for direct SVG manipulation.
+
+**Key Pattern:**
+```javascript
+const panResponder = useRef(PanResponder.create({
+  onStartShouldSetPanResponder: (evt) => {
+    const { locationX, locationY } = evt.nativeEvent;
+    return !!isNearHandle(locationX, locationY, threshold=28); // Hit detection
+  },
+  onPanResponderMove: (evt) => {
+    const angle = getTouchAngle(locationX, locationY);
+    const newTime = angleToTime(angle); // Convert angle → {h, m}
+    onWakeupChange(newTime.h, newTime.m); // Callback to parent
+  },
+}));
+```
+
+**Time Conversion:**
+- `timeToAngle(h, m)`: Converts 24h time to 0-360° (12:00 AM = 0°, 12:00 PM = 180°)
+- `angleToTime(angle)`: Reverse conversion, snapped to 5-minute increments
+
+### InteractiveArcSlider (screens/components/InteractiveArcSlider.js)
+Semicircular slider for brightness/volume (0-100%). Receives `colors` prop for gradient customization:
+```javascript
+<InteractiveArcSlider
+  percentage={brightness}
+  onValueChange={(val) => setBrightness(val)}
+  colors={['#F7CD62', '#FFEAB4']} // [dark, light] gradient
+/>
+```
+
+---
+
+## Styling System (styles.js)
+
+All global styles centralized in `styles.js`. Import and spread into components:
+
+```javascript
+import { textStyles, containers, colors, ele } from '../styles';
+
+// Usage
+<Text style={{...textStyles.semibold15, fontSize: 20}}>Title</Text>
+<View style={containers.violetLightC20} />
+```
+
+**Available Exports:**
+- `textStyles`: `medium16`, `reg11`, `semibold15` (PingFang font family)
+- `containers`: `CenterAJ` (flex center), `violetLightC20` (RGBA background), `presetButton`
+- `colors`: `edge` (border color rgba)
+- `ele`: `icon50`, `gnrborder`
+- `Icon12text11`: Helper component for icon+text pairs
+
+**Theme:** White text (`themeTextColor = 'white'`) on dark purple/violet translucent containers. All transparency uses RGBA values.
+
+---
+
+## Development Workflow
+
+### Running the App
 ```bash
-npm start                # Start Expo dev server (with --dev-client for native modules)
-npm run ios              # Build and run on iOS simulator
-npm run android          # Build and run on Android emulator
-npm run web              # Start web version
+npm start              # Expo dev server (use --dev-client for custom native modules)
+npm run ios            # iOS simulator (requires Xcode)
+npm run android        # Android emulator (requires Android Studio)
 ```
 
-### Platform Configuration
-- **metro.config.js:** Standard Expo Metro config (no customization needed)
-- **react-native.config.js:** Registers custom fonts in `assets/fonts/`
-- **iOS (Podfile):** Managed by Expo, native build in `ios/somnilightA0.xcworkspace`
-- **Android (gradle):** Standard RN setup in `android/app/build.gradle`
+**Entry Point:** `index.js` imports `App` from `App.js` (verify if switching development focus - currently correct)
 
-### Note on index.js
-Currently points to `HomeAlarmSetScreen` (likely for development). In production, should point to `App` (root).
+### Debugging Network Requests
+All `fetch()` calls include console logging. Check Metro bundler output for:
+```
+[Sync] Executing debounced sync with latest alarm config
+[LightAdjust] SENDING to server: { brightness: 75 }
+```
 
----
-
-## API & Backend Integration
-
-### Node-RED Endpoints
-- **GET `/get_state`:** Returns current device state (brightness, color)
-  ```javascript
-  // Example (LightAdjust.js)
-  const res = await fetch('http://somnilight.online:1880/get_state');
-  const data = await res.json();
-  ```
-- **POST `/set_brightness` (inferred):** Updates brightness value
-
-**Pattern:** Async/await with try-catch, no centralized API client (inline fetch).
+### Testing Gestures
+- **CircularAlarmSetPanel:** Requires testing on physical device or simulator with touch input (not Expo web)
+- **InteractiveArcSlider:** Works in web for basic testing, verify final behavior on iOS/Android
 
 ---
 
-## Development Conventions
+## Common Patterns & Conventions
 
-### Naming
-- **Files:** PascalCase for screens (HomeAlarmSet.js), camelCase for utilities
-- **Components:** PascalCase for exported React components
-- **Variables:** camelCase for state, props, functions; UPPERCASE for constants (COLOR_OPTIONS)
+### Import Grouping
+```javascript
+// 1. React fundamentals
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 
-### Imports
-- Group by: React fundamentals → Third-party (navigation, ui) → Local assets (styles, screens)
-- Relative paths for local imports (e.g., `../styles`, `./HomeAlarmSet.js`)
+// 2. Third-party libraries
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BlurView } from 'expo-blur';
 
-### State Management
-- Local component state via `useState` (no Redux/Context yet)
-- Props passed down for configuration and callbacks
+// 3. Navigation
+import { useNavigation } from '@react-navigation/native';
 
-### Assets
-- **Fonts:** `assets/fonts/` (PingFang variants)
-- **Images:** `assets/general_images/` (HP background, alarm set BG)
-- **Icons:** `assets/icons/` (moonsleep, timer, alarm set icons)
+// 4. Local assets & styles
+import { textStyles, containers } from '../styles';
+import { deviceWidth } from '../App';
 
----
+// 5. Local components/screens
+import LightAdjust from './LightAdjust';
+```
 
-## Common Tasks
+### File Naming
+- Screens: PascalCase (`HomeAlarmSet.js`, `Stats.js`)
+- Utils: PascalCase (`PresetStorage.js`, `ServerSync.js`)
+- Components: PascalCase (`InteractiveArcSlider.js`)
+- Assets: lowercase with underscores (`hp_asm.png`, `bg_stats.png`)
 
-### Adding a New Screen
-1. Create `screens/MyScreen.js` with functional component
-2. Import in `App.js` or relevant navigator
-3. Add to tab navigator or stack with `<Tabs.Screen name="MyScreen" component={MyScreen} />`
-4. Use `styles.js` exports for consistent theming
+### State & Refs Pattern
+When building gesture components that need to track both immediate and rendered state:
+```javascript
+const [value, setValue] = useState(50);        // Triggers re-renders
+const valueRef = useRef(50);                   // Immediate access in callbacks
 
-### Updating UI
-- Modify inline styles or add to `styles.js` (prefer StyleSheet for performance)
-- Use theme colors from `colors` object (RGBA values for transparency)
-- Test on both iOS simulator and Android emulator
+useEffect(() => {
+  valueRef.current = value;  // Keep ref in sync
+}, [value]);
 
-### Adding Backend Features
-- Add new endpoint handling in `LightAdjust.js` pattern (fetch with error handling)
-- Consider extracting to centralized API service if multiple endpoints grow
-
----
-
-## Known Quirks & Gotchas
-
-- **Device dimensions hardcoded:** If resizing UI, update `deviceHeight`/`deviceWidth` in `App.js`
-- **No persistent state:** Alarm settings and brightness reset on app reload (no AsyncStorage)
-- **Mock data:** `liveAlarmSettings` is static; not read from backend yet
-- **Tab bar styling:** Uses `BlurView` overlay; ensure `expo-blur` is installed
-- **Index.js entry point:** Currently points to `HomeAlarmSetScreen`; verify for main builds
+// In PanResponder, use valueRef.current for latest value without re-creating handlers
+```
 
 ---
 
-## References
-- **App entry:** `App.js` (root navigation structure)
-- **Styling hub:** `styles.js` (all theme constants)
-- **Alarm logic:** `HomeAlarmSet.js` (data structure and UI patterns)
-- **Backend integration:** `LightAdjust.js` (API calls and state sync)
+## Critical Gotchas
+
+1. **AsyncStorage is a Cache Layer:** Data in AsyncStorage is LOCAL ONLY. Server sync is required for persistence across devices. Always pair `AsyncStorage.setItem()` with a debounced server sync call.
+
+2. **Device Dimensions Hardcoded:** `deviceWidth` (393) and `deviceHeight` (852) in `App.js` are for specific device. UI layout calculations use these constants - update if targeting different screen sizes.
+
+3. **Debounce vs Throttle:**
+   - Use `syncAlarmToServerDebounced()` for user edits (guarantees final state upload)
+   - Use throttle pattern for continuous gestures (prevents request spam)
+
+4. **PanResponder Hit Detection:** Always implement `onStartShouldSetPanResponder` with precise hit detection logic. Return `false` to allow other touch handlers in parent views.
+
+5. **Navigation Context:** Screens inside tabs receive `navigation` prop automatically. Custom components need `useNavigation()` hook.
+
+6. **Alert Deduplication:** ServerSync uses `isAlertCurrentlyVisible` flag to prevent multiple failure alerts. Check before implementing similar patterns.
+
+---
+
+## Key Files Reference
+
+- **App.js:** Root navigation structure, device dimensions export, tab bar configuration
+- **styles.js:** All global styles and theme constants
+- **utils/ServerSync.js:** Debounced alarm sync with failure handling
+- **utils/PresetStorage.js:** Preset CRUD operations for AsyncStorage
+- **screens/HomeAlarmSet.js:** Alarm editor with CircularAlarmSetPanel integration
+- **screens/LightAdjust.js:** Brightness/color control with throttled server updates
+- **screens/Preset.js:** Preset manager with InteractiveArcSlider for light/sound curves
+- **screens/Stats/Stats.js:** Sleep data visualization with Day/Week/Month tabs
