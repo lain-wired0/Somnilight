@@ -10,7 +10,7 @@ const HANDLE_HEIGHT = 30;
 const SERVER_URL = 'http://150.158.158.233:1880';
 const THROTTLE_INTERVAL = 200; // Increase to 1 second to avoid server-side queue buildup
 
-export default function LightAdjust({ onClose, showHandle = false }) {
+export default function LightAdjust({ onClose, showHandle = false, onManualChange }) {
   const [brightness, setBrightness] = useState(65);
   const [selectedColor, setSelectedColor] = useState('#FFFFFF');
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
@@ -25,33 +25,62 @@ export default function LightAdjust({ onClose, showHandle = false }) {
   useEffect(() => {
     const loadState = async () => {
       try {
-        const savedBrightness = await AsyncStorage.getItem('last_brightness');
-        const savedColor = await AsyncStorage.getItem('last_color');
-
-        if (savedBrightness !== null) {
-          const b = parseInt(savedBrightness, 10);
+        // First check for temporary preset values (one-way from preset)
+        const tempBrightness = await AsyncStorage.getItem('tempBrightness');
+        const tempColorIndex = await AsyncStorage.getItem('tempColorIndex');
+        
+        if (tempBrightness !== null) {
+          const b = parseInt(tempBrightness, 10);
           setBrightness(b);
           brightnessRef.current = b;
           startBrightnessRef.current = b;
+          console.log('[LightAdjust] Loaded temp brightness from preset:', b);
         }
-        if (savedColor !== null) {
-          setSelectedColor(savedColor);
-          selectedColorRef.current = savedColor;
-          const idx = COLOR_OPTIONS.indexOf(savedColor);
-          if (idx >= 0) setSelectedColorIndex(idx);
+        
+        if (tempColorIndex !== null) {
+          const idx = parseInt(tempColorIndex, 10);
+          if (idx >= 0 && idx < COLOR_OPTIONS.length) {
+            const color = COLOR_OPTIONS[idx];
+            setSelectedColor(color);
+            selectedColorRef.current = color;
+            setSelectedColorIndex(idx);
+            console.log('[LightAdjust] Loaded temp color from preset:', color);
+          }
+        }
+        
+        // If no preset values, load from regular storage
+        if (tempBrightness === null) {
+          const savedBrightness = await AsyncStorage.getItem('last_brightness');
+          if (savedBrightness !== null) {
+            const b = parseInt(savedBrightness, 10);
+            setBrightness(b);
+            brightnessRef.current = b;
+            startBrightnessRef.current = b;
+          }
+        }
+        
+        if (tempColorIndex === null) {
+          const savedColor = await AsyncStorage.getItem('last_color');
+          if (savedColor !== null) {
+            setSelectedColor(savedColor);
+            selectedColorRef.current = savedColor;
+            const idx = COLOR_OPTIONS.indexOf(savedColor);
+            if (idx >= 0) setSelectedColorIndex(idx);
+          }
         }
 
         // 向 Node-RED 请求当前状态（/get_state）
         const res = await fetch(`${SERVER_URL}/get_state`);
         if (res.ok) {
           const data = await res.json();
-          if (data.brightness !== undefined) {
+          // Only update from server if we didn't have preset temp values
+          if (data.brightness !== undefined && tempBrightness === null) {
             setBrightness(data.brightness);
             brightnessRef.current = data.brightness;
             startBrightnessRef.current = data.brightness;
             await AsyncStorage.setItem('last_brightness', data.brightness.toString());
           }
-          if (data.color) {
+          if (data.color && tempColorIndex === null) {
             setSelectedColor(data.color);
             selectedColorRef.current = data.color;
             const idx2 = COLOR_OPTIONS.indexOf(data.color);
@@ -66,6 +95,15 @@ export default function LightAdjust({ onClose, showHandle = false }) {
       }
     };
     loadState();
+  }, []);
+
+  // Cleanup: Clear temp values when modal closes
+  useEffect(() => {
+    return () => {
+      // When component unmounts, clear temp preset values so they don't persist
+      AsyncStorage.removeItem('tempBrightness').catch(() => {});
+      AsyncStorage.removeItem('tempColorIndex').catch(() => {});
+    };
   }, []);
 
   // 2) 发送亮度/颜色到 Node-RED 的 /set_state（节流）
@@ -149,9 +187,11 @@ export default function LightAdjust({ onClose, showHandle = false }) {
     selectedColorRef.current = color;
     setSelectedColorIndex(index);
     AsyncStorage.setItem('last_color', color).catch(() => {});
+    // Clear active preset when user makes manual adjustment
+    onManualChange?.();
     // 立即发送颜色
     sendStateToServer({ color, brightness: brightnessRef.current });
-  }, [sendStateToServer]);
+  }, [sendStateToServer, onManualChange]);
 
   // 滑块交互
   const sliderRef = useRef(null);
@@ -163,6 +203,8 @@ export default function LightAdjust({ onClose, showHandle = false }) {
       onPanResponderGrant: (evt) => {
         // Store initial touch position for direct manipulation
         startBrightnessRef.current = brightness;
+        // Clear active preset when user makes manual adjustment
+        onManualChange?.();
       },
 
       onPanResponderMove: (evt, gestureState) => {

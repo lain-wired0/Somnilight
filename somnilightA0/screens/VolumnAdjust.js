@@ -10,7 +10,7 @@ const THROTTLE_INTERVAL = 200; // Throttle volume/music sends
 
 const SERVER_URL = 'http://150.158.158.233:1880';
 
-export default function VolumeAdjust({ onClose, showHandle = false }) {
+export default function VolumeAdjust({ onClose, showHandle = false, onManualChange }) {
   const [volume, setVolume] = useState(60);
   const [musicIndex, setMusicIndex] = useState(0);
 
@@ -32,32 +32,66 @@ export default function VolumeAdjust({ onClose, showHandle = false }) {
   useEffect(() => {
     const loadState = async () => {
       try {
-        const localVolume = await AsyncStorage.getItem('last_volume');
-        const localMusic = await AsyncStorage.getItem('last_music');
-
-        if (localVolume !== null) {
-          const v = parseInt(localVolume, 10);
+        // First check for temporary preset values (one-way from preset)
+        const tempVolume = await AsyncStorage.getItem('tempVolume');
+        const tempSoundId = await AsyncStorage.getItem('tempSoundId');
+        
+        if (tempVolume !== null) {
+          const v = parseInt(tempVolume, 10);
           setVolume(v);
           volumeRef.current = v;
           startVolumeRef.current = v;
+          console.log('[VolumeAdjust] Loaded temp volume from preset:', v);
         }
-        if (localMusic !== null) setMusicIndex(parseInt(localMusic, 10));
-
-        // Fetch server state from /get_volume endpoint
-        try {
-          const res = await fetch(`${SERVER_URL}/get_volume`);
-          if (res.ok) {
-            const json = await res.json();
-            if (json.volume !== undefined) {
-              setVolume(json.volume);
-              volumeRef.current = json.volume;
-              AsyncStorage.setItem('last_volume', json.volume.toString());
-            }
-          } else {
-            console.warn(`[VolumeAdjust] GET /get_volume returned status: ${res.status}`);
+        
+        // Map sound IDs to music indices if temp sound provided
+        if (tempSoundId !== null) {
+          const soundIdToIndex = {
+            'rain': 0,
+            'valley': 1,
+            'forest': 2,
+            'sea': 3,
+          };
+          const idx = soundIdToIndex[tempSoundId];
+          if (idx !== undefined) {
+            setMusicIndex(idx);
+            console.log('[VolumeAdjust] Loaded temp sound from preset:', tempSoundId);
           }
-        } catch (err) {
-          console.error('[VolumeAdjust] GET /get_volume failed:', err);
+        }
+        
+        // If no preset values, load from regular storage
+        if (tempVolume === null) {
+          const localVolume = await AsyncStorage.getItem('last_volume');
+          if (localVolume !== null) {
+            const v = parseInt(localVolume, 10);
+            setVolume(v);
+            volumeRef.current = v;
+            startVolumeRef.current = v;
+          }
+        }
+        
+        if (tempSoundId === null) {
+          const localMusic = await AsyncStorage.getItem('last_music');
+          if (localMusic !== null) setMusicIndex(parseInt(localMusic, 10));
+        }
+
+        // Fetch server state from /get_volume endpoint (only if no preset temp values)
+        if (tempVolume === null) {
+          try {
+            const res = await fetch(`${SERVER_URL}/get_volume`);
+            if (res.ok) {
+              const json = await res.json();
+              if (json.volume !== undefined) {
+                setVolume(json.volume);
+                volumeRef.current = json.volume;
+                AsyncStorage.setItem('last_volume', json.volume.toString());
+              }
+            } else {
+              console.warn(`[VolumeAdjust] GET /get_volume returned status: ${res.status}`);
+            }
+          } catch (err) {
+            console.error('[VolumeAdjust] GET /get_volume failed:', err);
+          }
         }
       } catch (err) {
         console.error('[VolumeAdjust] Load State Error:', err);
@@ -65,6 +99,16 @@ export default function VolumeAdjust({ onClose, showHandle = false }) {
     };
 
     loadState();
+  }, []);
+
+  // Cleanup: Clear temp values when modal closes
+  useEffect(() => {
+    return () => {
+      // When component unmounts, clear temp preset values so they don't persist
+      AsyncStorage.removeItem('tempVolume').catch(() => {});
+      AsyncStorage.removeItem('tempSoundId').catch(() => {});
+      AsyncStorage.removeItem('tempSoundPlaying').catch(() => {});
+    };
   }, []);
 
   // send volume to Node-RED with throttling and timeout
@@ -130,6 +174,9 @@ export default function VolumeAdjust({ onClose, showHandle = false }) {
 
     setMusicIndex(index);
     AsyncStorage.setItem('last_music', index.toString()).catch(() => {});
+    
+    // Clear active preset when user makes manual adjustment
+    onManualChange?.();
 
     // Cancel any pending request
     if (abortControllerMusicRef.current) {
@@ -167,7 +214,7 @@ export default function VolumeAdjust({ onClose, showHandle = false }) {
         console.error('[VolumeAdjust] POST /set_music Error:', err);
       }
     }
-  }, []);
+  }, [onManualChange]);
 
   // slider
   const sliderRef = useRef(null);
@@ -179,6 +226,8 @@ export default function VolumeAdjust({ onClose, showHandle = false }) {
       onPanResponderGrant: (evt) => {
         // Store initial touch position for direct manipulation
         startVolumeRef.current = volume;
+        // Clear active preset when user makes manual adjustment
+        onManualChange?.();
       },
 
       onPanResponderMove: (evt, gestureState) => {
@@ -231,7 +280,7 @@ export default function VolumeAdjust({ onClose, showHandle = false }) {
           left: 0,
           right: 0,
           height: fillHeight,
-          backgroundColor: 'rgba(226,226,226,0.45)'
+          backgroundColor: 'rgba(255,255,255,0.5)'
         }}/>
 
         {/* Invisible touch target (always full size for dragging) */}

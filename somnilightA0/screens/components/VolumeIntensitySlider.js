@@ -9,16 +9,29 @@ const SLIDER_HEIGHT = 80;
 const HANDLE_HEIGHT = 25;
 const SERVER_URL = 'http://150.158.158.233:1880';
 
-export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger }) {
+export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger, onManualChange }) {
   const [volume, setVolume] = useState(60);
   const volumeRef = useRef(60);
   const startVolumeRef = useRef(60);
   const lastSendTime = useRef(0);
   const sliderRef = useRef(null);
+  const onManualChangeRef = useRef(onManualChange);
 
-  // Load volume from AsyncStorage
+  // Load volume from AsyncStorage (or preset temp values)
   const loadVolume = useCallback(async () => {
     try {
+      // First check if there's a temporary preset volume (one-way from preset)
+      const tempVolume = await AsyncStorage.getItem('tempVolume');
+      if (tempVolume !== null) {
+        const v = parseInt(tempVolume, 10);
+        setVolume(v);
+        volumeRef.current = v;
+        startVolumeRef.current = v;
+        console.log('[VolumeIntensitySlider] Loaded temp volume from preset:', v);
+        return;
+      }
+
+      // Otherwise load from regular storage
       const savedVolume = await AsyncStorage.getItem('last_volume');
       if (savedVolume !== null) {
         const v = parseInt(savedVolume, 10);
@@ -35,6 +48,11 @@ export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger }
   useEffect(() => {
     loadVolume();
   }, [loadVolume]);
+
+  // Keep ref in sync with onManualChange prop
+  useEffect(() => {
+    onManualChangeRef.current = onManualChange;
+  }, [onManualChange]);
 
   // Reload volume when refreshTrigger changes (modal closes)
   useEffect(() => {
@@ -57,6 +75,9 @@ export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger }
 
       onPanResponderGrant: () => {
         startVolumeRef.current = volume;
+        // Clear active preset when user makes manual adjustment
+        console.log('[VolumeIntensitySlider] Calling onManualChange');
+        onManualChangeRef.current?.();
       },
 
       onPanResponderMove: (evt, gestureState) => {
@@ -103,7 +124,7 @@ export default function VolumeIntensitySlider({ onVolumeChange, refreshTrigger }
             left: 0,
             right: 0,
             height: fillHeight,
-            backgroundColor: 'rgba(226, 226, 226, 0.3)',
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
           }}
         />
 

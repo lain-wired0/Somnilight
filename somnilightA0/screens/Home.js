@@ -22,6 +22,7 @@ import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import { textStyles, colors, containers, ele } from '../styles';
 import { deviceHeight, deviceWidth} from '../App.js'
 import { Icon12text11 } from '../styles';
+import { loadPresetsFromStorage, loadActivePresetId, saveActivePresetId } from '../utils/PresetStorage';
 
 //Local Navigation
 import { Tabs } from '../App.js';
@@ -64,6 +65,19 @@ const HomeScreen = (pass = {navigation, route}) => {
     const [volumeAdjustVisible, setVolumeAdjustVisible] = useState(false);
     const [brightnessRefreshTrigger, setBrightnessRefreshTrigger] = useState(0);
     const [volumeRefreshTrigger, setVolumeRefreshTrigger] = useState(0);
+    
+    // Active preset tracking (shared state between HomeControlPanel and modals)
+    const [activePresetId, setActivePresetId] = useState(null);
+    
+    // Clear active preset when user makes manual adjustments
+    const clearActivePreset = useCallback(async () => {
+        console.log('[HomeScreen] clearActivePreset called, current activePresetId:', activePresetId);
+        if (activePresetId !== null) {
+            setActivePresetId(null);
+            await saveActivePresetId(null);
+            console.log('[HomeScreen] Cleared active preset (manual adjustment made)');
+        }
+    }, [activePresetId]);
     
     // Sleep Timer State
     const [timerModalVisible, setTimerModalVisible] = useState(false);
@@ -162,21 +176,34 @@ const HomeScreen = (pass = {navigation, route}) => {
                     stopTimer,
                     formatRemainingTime,
                     brightnessRefreshTrigger,
-                    volumeRefreshTrigger
+                    volumeRefreshTrigger,
+                    setBrightnessRefreshTrigger,
+                    setVolumeRefreshTrigger,
+                    activePresetId,
+                    setActivePresetId,
+                    clearActivePreset
                 }}/>
             </View>
             
             {/* Light Adjust Modal */}
-            <LightAdjustModal visible={lightAdjustVisible} onClose={() => {
-                setLightAdjustVisible(false);
-                setBrightnessRefreshTrigger(prev => prev + 1);
-            }} />
+            <LightAdjustModal 
+                visible={lightAdjustVisible} 
+                clearActivePreset={clearActivePreset}
+                onClose={() => {
+                    setLightAdjustVisible(false);
+                    setBrightnessRefreshTrigger(prev => prev + 1);
+                }} 
+            />
             
             {/* Volume Adjust Modal */}
-            <VolumeAdjustModal visible={volumeAdjustVisible} onClose={() => {
-                setVolumeAdjustVisible(false);
-                setVolumeRefreshTrigger(prev => prev + 1);
-            }} />
+            <VolumeAdjustModal 
+                visible={volumeAdjustVisible} 
+                clearActivePreset={clearActivePreset}
+                onClose={() => {
+                    setVolumeAdjustVisible(false);
+                    setVolumeRefreshTrigger(prev => prev + 1);
+                }} 
+            />
             
             {/* Sleep Timer Modal */}
             <TimerPickerModal 
@@ -325,7 +352,7 @@ async function initPower() {
 }
 
 // Light Adjust Modal Component
-const LightAdjustModal = ({ visible, onClose }) => {
+const LightAdjustModal = ({ visible, onClose, clearActivePreset }) => {
     if (!visible) return null;
     
     return (
@@ -352,7 +379,7 @@ const LightAdjustModal = ({ visible, onClose }) => {
                     {/* Content - box-none allows background tap to pass through empty areas */}
                     <TouchableWithoutFeedback onPress={() => {}}>
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', pointerEvents: 'box-none' }}>
-                            <LightAdjust onClose={onClose} />
+                            <LightAdjust onClose={onClose} onManualChange={clearActivePreset} />
                         </View>
                     </TouchableWithoutFeedback>
                 </View>
@@ -362,7 +389,7 @@ const LightAdjustModal = ({ visible, onClose }) => {
 };
 
 // Volume Adjust Modal Component
-const VolumeAdjustModal = ({ visible, onClose }) => {
+const VolumeAdjustModal = ({ visible, onClose, clearActivePreset }) => {
     if (!visible) return null;
     
     return (
@@ -389,7 +416,7 @@ const VolumeAdjustModal = ({ visible, onClose }) => {
                     {/* Content - box-none allows background tap to pass through empty areas */}
                     <TouchableWithoutFeedback onPress={() => {}}>
                         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', pointerEvents: 'box-none' }}>
-                            <VolumnAdjust onClose={onClose} />
+                            <VolumnAdjust onClose={onClose} onManualChange={clearActivePreset} />
                         </View>
                     </TouchableWithoutFeedback>
                 </View>
@@ -415,10 +442,95 @@ async function setPower(isOn) {
 }
 
 const HomeControlPanel = ({pass}) => {
-    const [selectedPreset, setSelectedPreset] = useState('jade');
+    const [presets, setPresets] = useState([]);
     const [panelIndex, setPanelIndex] = useState(0);
     const [containerWidth, setContainerWidth] = useState(0);
     const scrollViewRef = useRef(null);
+
+    // Load presets from storage
+    const loadPresetsData = useCallback(async () => {
+        try {
+            const storedPresets = await loadPresetsFromStorage();
+            if (storedPresets && storedPresets.length > 0) {
+                setPresets(storedPresets);
+                console.log('[HomeControlPanel] Loaded presets:', storedPresets.length);
+            }
+
+            const activeId = await loadActivePresetId();
+            if (activeId) {
+                pass.setActivePresetId(activeId);
+                console.log('[HomeControlPanel] Loaded active preset:', activeId);
+            }
+        } catch (error) {
+            console.error('[HomeControlPanel] Error loading presets:', error);
+        }
+    }, [pass]);
+
+    // Load presets on mount
+    useEffect(() => {
+        loadPresetsData();
+    }, [loadPresetsData]);
+
+    // Reload presets when screen comes into focus (after returning from Preset screen)
+    useEffect(() => {
+        const unsubscribe = pass.navigation.addListener('focus', () => {
+            console.log('[HomeControlPanel] Screen focused, reloading presets');
+            loadPresetsData();
+        });
+        
+        return unsubscribe;
+    }, [pass.navigation, loadPresetsData]);
+
+    // Apply preset settings when selected (read-only, one-way sync from preset to UI)
+    const applyPreset = async (preset) => {
+        try {
+            console.log('[HomeControlPanel] Applying preset:', preset.label);
+            
+            // Update UI sliders/modals with preset values WITHOUT saving to AsyncStorage
+            // This is one-way only: preset -> UI (not UI -> preset)
+            
+            // Update brightness and color in UI
+            if (preset.lighting) {
+                console.log('[HomeControlPanel] Updating brightness:', preset.lighting.brightness, 'color index:', preset.lighting.colorIndex);
+                // Store temporarily in a state that LightIntensitySlider can watch
+                await AsyncStorage.setItem('tempBrightness', JSON.stringify(preset.lighting.brightness));
+                await AsyncStorage.setItem('tempColorIndex', JSON.stringify(preset.lighting.colorIndex));
+                // Trigger UI refresh
+                pass.setBrightnessRefreshTrigger(prev => prev + 1);
+            }
+
+            // Update volume in UI
+            if (preset.volume !== undefined) {
+                // Convert decimal volume (0-1) to percentage (0-100)
+                const volumePercent = Math.round(preset.volume * 100);
+                console.log('[HomeControlPanel] Updating volume:', preset.volume, '-> percentage:', volumePercent);
+                await AsyncStorage.setItem('tempVolume', JSON.stringify(volumePercent));
+                pass.setVolumeRefreshTrigger(prev => prev + 1);
+            }
+
+            // Update sound settings in UI (for Preset.js)
+            if (preset.soundId !== undefined) {
+                await AsyncStorage.setItem('tempSoundId', preset.soundId);
+            }
+
+            if (preset.isSoundPlaying !== undefined) {
+                await AsyncStorage.setItem('tempSoundPlaying', JSON.stringify(preset.isSoundPlaying));
+            }
+
+            // Update vibration in UI
+            if (preset.vibration !== undefined) {
+                await AsyncStorage.setItem('tempVibrationEnabled', JSON.stringify(preset.vibration));
+            }
+
+            // Mark this preset as selected (for visual indicator only)
+            pass.setActivePresetId(preset.id);
+            await saveActivePresetId(preset.id);
+            
+            console.log('[HomeControlPanel] Preset applied to UI (one-way sync)');
+        } catch (error) {
+            console.error('[HomeControlPanel] Error applying preset:', error);
+        }
+    };
 
     const handleScroll = (event) => {
         const offsetX = event.nativeEvent.contentOffset.x;
@@ -503,18 +615,24 @@ const HomeControlPanel = ({pass}) => {
                     </View>
                 </View>
                 <TouchableOpacity 
-                    style = {{...containers.violetDarkC20,flex:1}}
+                    style = {{...containers.violetDarkC20,flex:1, opacity: pass.activePresetId === null ? 1 : 0.6}}
                     onPress={() => pass.setLightAdjustVisible(true)}
                     activeOpacity={0.8}
                 >
-                    <LightIntensitySlider refreshTrigger={pass.brightnessRefreshTrigger} />
+                    <LightIntensitySlider 
+                        refreshTrigger={pass.brightnessRefreshTrigger} 
+                        onManualChange={pass.clearActivePreset}
+                    />
                 </TouchableOpacity>                  
                 <TouchableOpacity 
-                    style = {{...containers.violetDarkC20,flex:1}}
+                    style = {{...containers.violetDarkC20,flex:1, opacity: pass.activePresetId === null ? 1 : 0.6}}
                     onPress={() => pass.setVolumeAdjustVisible(true)}
                     activeOpacity={0.8}
                 >
-                    <VolumeIntensitySlider refreshTrigger={pass.volumeRefreshTrigger} />
+                    <VolumeIntensitySlider 
+                        refreshTrigger={pass.volumeRefreshTrigger} 
+                        onManualChange={pass.clearActivePreset}
+                    />
                 </TouchableOpacity>                                             
             </View>
                 <View style={{ ...containers.violetDarkC20, flex: 3, flexDirection: 'row' }}>
@@ -528,7 +646,7 @@ const HomeControlPanel = ({pass}) => {
                     </TouchableOpacity>
                 </View>
 
-                {/* 右侧：三个头像 + Add，仅在首页切换预设，不跳转 */}
+                {/* 右侧：动态预设按钮 + Add */}
                 <View style={{ ...containers.CenterAJ, flex: 2 }}>
                     <View
                     style={{
@@ -537,58 +655,54 @@ const HomeControlPanel = ({pass}) => {
                         right: 5,
                     }}
                     >
-                    {/* Jade */}
-                    <TouchableOpacity
-                        onPress={() => setSelectedPreset('jade')}
-                        activeOpacity={0.9}
-                    >
-                        <Image
-                        source={require('../assets/general_images/preJade.png')}
-                        style={[
-                            containers.presetButton,
-                            selectedPreset === 'jade' && {
-                            borderWidth: 2,
-                            borderColor: '#FFFFFF',
-                            },
-                        ]}
-                        />
-                    </TouchableOpacity>
+                    {/* Display first 3 presets or empty state */}
+                    {presets.length > 0 ? (
+                        presets.slice(0, 3).map((preset) => (
+                            <TouchableOpacity
+                                key={preset.id}
+                                onPress={() => applyPreset(preset)}
+                                activeOpacity={0.9}
+                                style={{
+                                    opacity: pass.activePresetId === preset.id ? 1 : 0.5,
+                                }}
+                            >
+                                <Image
+                                    source={preset.cover}
+                                    style={[
+                                        containers.presetButton,
+                                        pass.activePresetId === preset.id && {
+                                            borderWidth: 2,
+                                            borderColor: '#FFFFFF',
+                                        },
+                                    ]}
+                                />
+                            </TouchableOpacity>
+                        ))
+                    ) : (
+                        // Fallback: show default preset covers if no presets loaded
+                        <>
+                            <TouchableOpacity activeOpacity={0.9}>
+                                <Image
+                                    source={require('../assets/general_images/preJade.png')}
+                                    style={containers.presetButton}
+                                />
+                            </TouchableOpacity>
+                            <TouchableOpacity activeOpacity={0.9}>
+                                <Image
+                                    source={require('../assets/general_images/preMist.png')}
+                                    style={containers.presetButton}
+                                />
+                            </TouchableOpacity>
+                            <TouchableOpacity activeOpacity={0.9}>
+                                <Image
+                                    source={require('../assets/general_images/preCloud.png')}
+                                    style={containers.presetButton}
+                                />
+                            </TouchableOpacity>
+                        </>
+                    )}
 
-                    {/* Mist */}
-                    <TouchableOpacity
-                        onPress={() => setSelectedPreset('mist')}
-                        activeOpacity={0.9}
-                    >
-                        <Image
-                        source={require('../assets/general_images/preMist.png')}
-                        style={[
-                            containers.presetButton,
-                            selectedPreset === 'mist' && {
-                            borderWidth: 2,
-                            borderColor: '#FFFFFF',
-                            },
-                        ]}
-                        />
-                    </TouchableOpacity>
-
-                    {/* Cloud */}
-                    <TouchableOpacity
-                        onPress={() => setSelectedPreset('cloud')}
-                        activeOpacity={0.9}
-                    >
-                        <Image
-                        source={require('../assets/general_images/preCloud.png')}
-                        style={[
-                            containers.presetButton,
-                            selectedPreset === 'cloud' && {
-                            borderWidth: 2,
-                            borderColor: '#FFFFFF',
-                            },
-                        ]}
-                        />
-                    </TouchableOpacity>
-
-                    {/* 加号：这里我让它直接跳到 Preset 页面，也可以改成别的逻辑 */}
+                    {/* Add preset button - navigate to Preset screen */}
                     <TouchableOpacity
                         onPress={() => pass.navigation.navigate('Preset')}
                         activeOpacity={0.9}
@@ -659,12 +773,12 @@ const HomeAlarmSetPanel = ({pass}) => {
                 style = {{flex:1}}
                 onPress = {() => pass.navigation.navigate('HomeAlarmSet')}
                 >
-            <Text style = {{...textStyles.medium16,top:13,left:17}}>Alarm Set</Text>
-            <View style={{top:20,left:24}}>
+            <Text style = {{...textStyles.medium16,top:15,left:20,position:'absolute'}}>Alarm Set</Text>
+            <View style={{top:42,left:24}}>
                 <Icon12text11 addr = {require('../assets/icons/moonsleep.png')} text = {'Bedtime'}/>
                 <Text style = {{...textStyles.semibold15,lineHeight:18}}>{bedtimeDisplay}</Text>
             </View>
-            <View style={{top:25,left:24}}>
+            <View style={{top:42,left:24}}>
                 <Icon12text11 addr = {require('../assets/icons/timer.png')} text = {'Wake up'}/>
                 <Text style = {{...textStyles.semibold15,lineHeight:18}}>{wakeupDisplay}</Text>
             </View>

@@ -9,16 +9,29 @@ const SLIDER_HEIGHT = 80;
 const HANDLE_HEIGHT = 25;
 const SERVER_URL = 'http://150.158.158.233:1880';
 
-export default function LightIntensitySlider({ onBrightnessChange, refreshTrigger }) {
+export default function LightIntensitySlider({ onBrightnessChange, refreshTrigger, onManualChange }) {
   const [brightness, setBrightness] = useState(65);
   const brightnessRef = useRef(65);
   const startBrightnessRef = useRef(65);
   const lastSendTime = useRef(0);
   const sliderRef = useRef(null);
+  const onManualChangeRef = useRef(onManualChange);
 
-  // Load brightness from AsyncStorage
+  // Load brightness from AsyncStorage (or preset temp values)
   const loadBrightness = useCallback(async () => {
     try {
+      // First check if there's a temporary preset brightness (one-way from preset)
+      const tempBrightness = await AsyncStorage.getItem('tempBrightness');
+      if (tempBrightness !== null) {
+        const b = parseInt(tempBrightness, 10);
+        setBrightness(b);
+        brightnessRef.current = b;
+        startBrightnessRef.current = b;
+        console.log('[LightIntensitySlider] Loaded temp brightness from preset:', b);
+        return;
+      }
+
+      // Otherwise load from regular storage
       const savedBrightness = await AsyncStorage.getItem('last_brightness');
       if (savedBrightness !== null) {
         const b = parseInt(savedBrightness, 10);
@@ -35,6 +48,11 @@ export default function LightIntensitySlider({ onBrightnessChange, refreshTrigge
   useEffect(() => {
     loadBrightness();
   }, [loadBrightness]);
+
+  // Keep ref in sync with onManualChange prop
+  useEffect(() => {
+    onManualChangeRef.current = onManualChange;
+  }, [onManualChange]);
 
   // Reload brightness when refreshTrigger changes (modal closes)
   useEffect(() => {
@@ -57,6 +75,9 @@ export default function LightIntensitySlider({ onBrightnessChange, refreshTrigge
 
       onPanResponderGrant: () => {
         startBrightnessRef.current = brightness;
+        // Clear active preset when user makes manual adjustment
+        console.log('[LightIntensitySlider] Calling onManualChange');
+        onManualChangeRef.current?.();
       },
 
       onPanResponderMove: (evt, gestureState) => {
@@ -103,7 +124,7 @@ export default function LightIntensitySlider({ onBrightnessChange, refreshTrigge
             left: 0,
             right: 0,
             height: fillHeight,
-            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
           }}
         />
 
