@@ -1,0 +1,1685 @@
+[
+    {
+        "id": "6960865abc7213da",
+        "type": "tab",
+        "label": "Power&Alarm&Report",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "0a6e231e89b9bc59",
+        "type": "group",
+        "z": "6960865abc7213da",
+        "name": "POWER",
+        "style": {
+            "stroke": "#ffdf7f",
+            "label": true,
+            "color": "#ffC000"
+        },
+        "nodes": [
+            "3124e12c22704ef7",
+            "a7e0e2294edbe32b",
+            "a508d6bea7014775",
+            "08ba3078dd47e116",
+            "132147c4eb0d458f",
+            "7b93265ed146fc8d",
+            "d97db92a4fbe8834",
+            "642f80cec019d5a7",
+            "38b3854b83006202",
+            "a3a6b523d0b74b05",
+            "97c1a526e45774f0",
+            "cfe3dda6d5446b98"
+        ],
+        "x": 414,
+        "y": 199,
+        "w": 912,
+        "h": 502
+    },
+    {
+        "id": "f4f718c05e7af34b",
+        "type": "group",
+        "z": "6960865abc7213da",
+        "name": "SET_ALARM",
+        "style": {
+            "label": true,
+            "stroke": "#ffdf7f",
+            "color": "#ffC000"
+        },
+        "nodes": [
+            "468fd36a0481be51",
+            "fc7d63477aea966d",
+            "4f065590ddb2adf9",
+            "88479753924b1e8b",
+            "492d604155f4b1de",
+            "b87cf5f6239d106c",
+            "c330a66e9f2e9c84",
+            "baec4bea749e571a",
+            "63b2eda0c500039d",
+            "cb03067e4c20d213",
+            "28827d74aaa40714",
+            "8e9a313bee84346f",
+            "f014efdc447ad856"
+        ],
+        "x": 414,
+        "y": 759,
+        "w": 752,
+        "h": 602
+    },
+    {
+        "id": "8ded700570f56b2c",
+        "type": "group",
+        "z": "6960865abc7213da",
+        "name": "SLEEP REPORT-DAY",
+        "style": {
+            "label": true,
+            "stroke": "#ffdf7f",
+            "color": "#ffC000"
+        },
+        "nodes": [
+            "841e445ab82f83c3",
+            "c5c215916c4f1ea4"
+        ],
+        "x": 412,
+        "y": 1433,
+        "w": 1306,
+        "h": 594
+    },
+    {
+        "id": "841e445ab82f83c3",
+        "type": "group",
+        "z": "6960865abc7213da",
+        "g": "8ded700570f56b2c",
+        "name": "http_simulation",
+        "style": {
+            "stroke": "none",
+            "fill": "#bfdbef",
+            "fill-opacity": "0.6",
+            "label": true,
+            "color": "#0070c0"
+        },
+        "nodes": [
+            "ac64e4d07a7064eb",
+            "ae4586030e168795",
+            "254ccadcdf6ef86b"
+        ],
+        "x": 454,
+        "y": 1459,
+        "w": 692,
+        "h": 82
+    },
+    {
+        "id": "c5c215916c4f1ea4",
+        "type": "group",
+        "z": "6960865abc7213da",
+        "g": "8ded700570f56b2c",
+        "name": "mqtt_simulation",
+        "style": {
+            "label": true,
+            "stroke": "#bfdbef",
+            "color": "#0070c0"
+        },
+        "nodes": [
+            "4616d66bfecc83fe",
+            "a82053e08950acba",
+            "98a9760f20584f9d",
+            "09afe58018b62391",
+            "f67defbb7e197653",
+            "81c72d818ed84c15",
+            "a51c07b6450ebcd5",
+            "85fe34509e095104"
+        ],
+        "x": 438,
+        "y": 1613,
+        "w": 1254,
+        "h": 388
+    },
+    {
+        "id": "a51c07b6450ebcd5",
+        "type": "group",
+        "z": "6960865abc7213da",
+        "g": "c5c215916c4f1ea4",
+        "name": "Sensor simulation",
+        "style": {
+            "stroke": "none",
+            "fill": "#ffefbf",
+            "label": true,
+            "color": "#ffC000",
+            "fill-opacity": "0.6"
+        },
+        "nodes": [
+            "32a02b3269017e2a",
+            "c8a22b3227e9c2f7",
+            "a76508a806a69143",
+            "bb39aadca579a3b6",
+            "cb155972a6e761e4"
+        ],
+        "x": 464,
+        "y": 1639,
+        "w": 1202,
+        "h": 82
+    },
+    {
+        "id": "3124e12c22704ef7",
+        "type": "http in",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "",
+        "url": "/pillow/power",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 530,
+        "y": 360,
+        "wires": [
+            [
+                "a508d6bea7014775"
+            ]
+        ],
+        "info": "接收 App 的 HTTP 请求。\r\n任务：往 命令频道 (pillow/cmd/power) 发送指令"
+    },
+    {
+        "id": "a7e0e2294edbe32b",
+        "type": "http response",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1130,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "a508d6bea7014775",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "Prepare MQTT power cmd",
+        "func": "// 期望 body: { \"power\": \"on\" } 或 { \"power\": \"off\" }\nlet body = msg.payload;\n\n// 兼容一下：如果是字符串就尝试 parse\nif (typeof body === \"string\") {\n    try {\n        body = JSON.parse(body);\n    } catch (e) {\n        // 解析失败，当作没有 power 字段\n    }\n}\n\nif (!body || !body.power) {\n    // 错误情况：缺少 power 字段\n    let err = {\n        payload: { error: \"Missing 'power' field\" },\n        statusCode: 400\n    };\n    // [输出1消息, 输出2消息]，这里只给输出2（HTTP）发\n    return [null, err];\n}\n\nlet power = String(body.power).toLowerCase();\n\n// 只允许 on/off\nif (power !== \"on\" && power !== \"off\") {\n    let err = {\n        payload: { error: \"Invalid power value, use 'on' or 'off'\" },\n        statusCode: 400\n    };\n    return [null, err];\n}\n\n// 1️⃣ 给 MQTT 的消息（输出 1）\nlet mqttMsg = {\n    payload: JSON.stringify({ power: power })\n};\n\n// 2️⃣ 给 HTTP 的响应（输出 2）\nlet httpMsg = msg;\nhttpMsg.payload = { ok: true, power: power, ts: new Date().toLocaleString() }\nhttpMsg.statusCode = 200;\n\nreturn [mqttMsg, httpMsg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 780,
+        "y": 360,
+        "wires": [
+            [
+                "08ba3078dd47e116",
+                "cfe3dda6d5446b98"
+            ],
+            [
+                "a7e0e2294edbe32b",
+                "97c1a526e45774f0"
+            ]
+        ]
+    },
+    {
+        "id": "08ba3078dd47e116",
+        "type": "mqtt out",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "",
+        "topic": "pillow/cmd/power",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "7eb0b036e6754e72",
+        "x": 1130,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "132147c4eb0d458f",
+        "type": "mqtt in",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "MQTT IN pillow/status/power",
+        "topic": "pillow/status/power",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "7eb0b036e6754e72",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 580,
+        "y": 580,
+        "wires": [
+            [
+                "7b93265ed146fc8d"
+            ]
+        ],
+        "info": "同步状态。\r\n任务：监听 状态频道 (pillow/status/power)，把最新状态存到变量里。"
+    },
+    {
+        "id": "7b93265ed146fc8d",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "Update power_status",
+        "func": "let data = msg.payload || {};\nlet power = String(data.power || \"\").toLowerCase();\n\n// 只接受 on/off\nif (power === \"on\" || power === \"off\") {\n    flow.set(\"power_status\", power);\n    node.status({fill:\"green\", shape:\"dot\", text:\"power: \" + power});\n} else {\n    node.warn(\"Unknown power status: \" + power);\n}\n\nreturn msg;   // 方便后面 debug 看\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 880,
+        "y": 580,
+        "wires": [
+            [
+                "d97db92a4fbe8834"
+            ]
+        ]
+    },
+    {
+        "id": "d97db92a4fbe8834",
+        "type": "debug",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "debug 19",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1140,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "642f80cec019d5a7",
+        "type": "http in",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "GET /pillow/power",
+        "url": "/pillow/power",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 550,
+        "y": 660,
+        "wires": [
+            [
+                "38b3854b83006202"
+            ]
+        ]
+    },
+    {
+        "id": "38b3854b83006202",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "Get power_status",
+        "func": "let power = flow.get(\"power_status\");\n\n// 默认状态（比如：还没收到任何上报）\nif (!power) {\n    power = \"unknown\";  \n}\n\nmsg.payload = {\n    power: power,\n    source: \"node-red\",\n    ts: new Date().toLocaleString()   \n};\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 830,
+        "y": 660,
+        "wires": [
+            [
+                "a3a6b523d0b74b05"
+            ]
+        ]
+    },
+    {
+        "id": "a3a6b523d0b74b05",
+        "type": "http response",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1050,
+        "y": 660,
+        "wires": []
+    },
+    {
+        "id": "97c1a526e45774f0",
+        "type": "debug",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "debug 20",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1140,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "468fd36a0481be51",
+        "type": "http in",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "",
+        "url": "/pillow/alarm",
+        "method": "post",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 530,
+        "y": 840,
+        "wires": [
+            [
+                "fc7d63477aea966d"
+            ]
+        ]
+    },
+    {
+        "id": "fc7d63477aea966d",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "Set Alarm",
+        "func": "// SET_ALARM\n// HTTP:  POST /pillow/alarm\n\n// 1️⃣ 解析 payload\nlet payload = msg.payload;\nif (typeof payload === \"string\") {\n    try {\n        payload = JSON.parse(payload);\n    } catch (e) {\n        let httpErr = { ...msg };\n        httpErr.payload = { ok: false, error: \"Invalid JSON payload\" };\n        httpErr.statusCode = 400;\n        return [null, httpErr];    // [MQTT, HTTP]\n    }\n}\n\n// 2️⃣ 取出字段\nlet bedtime = payload.bedtime;\nlet sunriseTime = payload.sunrise_time;\nlet wakeupTime = payload.wakeup_time;\n\nlet days = payload.days || [];\nlet name = payload.name || null;\nlet presetId = payload.preset_id || null;\n\nlet repeatInterval = payload.repeat_interval_min;\nif (typeof repeatInterval !== \"number\") {\n    repeatInterval = 5;\n}\n\n// 3️⃣ 基本校验\nif (!bedtime || !sunriseTime || !wakeupTime) {\n    let httpErr = { ...msg };\n    httpErr.payload = {\n        ok: false,\n        error: \"Missing 'bedtime', 'sunrise_time' or 'wakeup_time'\"\n    };\n    httpErr.statusCode = 400;\n    return [null, httpErr];\n}\n\nfunction isValidTimeStr(t) {\n    return /^\\d{2}:\\d{2}$/.test(t);\n}\n\nif (!isValidTimeStr(bedtime) || !isValidTimeStr(sunriseTime) || !isValidTimeStr(wakeupTime)) {\n    let httpErr = { ...msg };\n    httpErr.payload = {\n        ok: false,\n        error: \"Time format must be 'HH:MM'\"\n    };\n    httpErr.statusCode = 400;\n    return [null, httpErr];\n}\n\n\n// 4️⃣ 组装 “完整 alarm” 对象并保存到 flow（给前端 / Node-RED 自己用）\nlet now = new Date();\nlet alarm = {\n    bedtime,\n    sunrise_time: sunriseTime,\n    wakeup_time: wakeupTime,\n    days,\n    name,\n    preset_id: presetId,\n    repeat_interval_min: repeatInterval,\n    created_at_ts: now.getTime(),\n    created_at: now.toLocaleString(\"zh-CN\", { hour12: false })\n};\nflow.set(\"alarm\", alarm);\n\n// 5️⃣ 给 ESP8266 的 “瘦身版 alarm” —— 只保留关键字段，保证 payload 足够短\nlet deviceAlarm = {\n    bedtime,\n    sunrise_time: sunriseTime,\n    wakeup_time: wakeupTime,\n    repeat_interval_min: repeatInterval\n};\n\n// 输出 1：MQTT\nlet mqttMsg = {\n    topic: \"pillow/cmd/alarm\",\n    payload: JSON.stringify(deviceAlarm)   // 👈 发给枕头的是这份\n};\n\n// 输出 2：HTTP 响应，还是把完整 alarm 回给前端\nlet httpMsg = { ...msg };\nhttpMsg.payload = {\n    ok: true,\n    received: true,\n    alarm         // 👈 这里是完整版本\n};\nhttpMsg.statusCode = 200;\n\nreturn [mqttMsg, httpMsg];\n",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 740,
+        "y": 840,
+        "wires": [
+            [
+                "88479753924b1e8b",
+                "f014efdc447ad856"
+            ],
+            [
+                "4f065590ddb2adf9",
+                "baec4bea749e571a"
+            ]
+        ]
+    },
+    {
+        "id": "4f065590ddb2adf9",
+        "type": "http response",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 990,
+        "y": 940,
+        "wires": []
+    },
+    {
+        "id": "88479753924b1e8b",
+        "type": "mqtt out",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "",
+        "topic": "pillow/cmd/alarm",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "7eb0b036e6754e72",
+        "x": 1050,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "492d604155f4b1de",
+        "type": "http in",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "",
+        "url": "/pillow/status/state",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 540,
+        "y": 1220,
+        "wires": [
+            [
+                "b87cf5f6239d106c"
+            ]
+        ]
+    },
+    {
+        "id": "b87cf5f6239d106c",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "Get State",
+        "func": "let state = flow.get(\"state\");\n\nif (!state) {\n    msg.statusCode = 404;\n    msg.payload = { ok: false, error: \"No state from device yet\" };\n    return msg;\n}\n\nmsg.statusCode = 200;\nmsg.payload = state;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 740,
+        "y": 1220,
+        "wires": [
+            [
+                "c330a66e9f2e9c84",
+                "63b2eda0c500039d"
+            ]
+        ]
+    },
+    {
+        "id": "c330a66e9f2e9c84",
+        "type": "http response",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 950,
+        "y": 1220,
+        "wires": []
+    },
+    {
+        "id": "baec4bea749e571a",
+        "type": "debug",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "debug 21",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1000,
+        "y": 1000,
+        "wires": []
+    },
+    {
+        "id": "63b2eda0c500039d",
+        "type": "debug",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "debug 22",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 960,
+        "y": 1320,
+        "wires": []
+    },
+    {
+        "id": "73f865a84125f56e",
+        "type": "comment",
+        "z": "6960865abc7213da",
+        "name": "设置闹钟前端需要提交的字段格式",
+        "info": "{\n  \"bedtime\": \"23:00\",\n  \"sunrise_time\": \"15:00\",\n  \"wakeup_time\": \"15:02\",\n  \"days\": [\"Mon\",\"Tue\",\"Wed\",\"Thu\",\"Fri\"],\n  \"name\": \"Healthy sleep\",\n  \"preset_id\": \"Morning_1\",\n  \"repeat_interval_min\": 5\n}\n\n**另外一个关于用户体验的建议：\n当用户选择 wakeup_time 后，\n前端可以自动把 sunrise_time 设置为 wakeup_time - 30 分钟，简化一步操作。但必须允许用户自行更改",
+        "x": 250,
+        "y": 780,
+        "wires": []
+    },
+    {
+        "id": "cb03067e4c20d213",
+        "type": "mqtt in",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "",
+        "topic": "pillow/status/state",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "7eb0b036e6754e72",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 530,
+        "y": 1100,
+        "wires": [
+            [
+                "28827d74aaa40714"
+            ]
+        ]
+    },
+    {
+        "id": "28827d74aaa40714",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "Update state",
+        "func": "// 设备（或模拟器）上报的综合状态\nlet state = msg.payload;\n\n// 存起来，GET /pillow/status/state 会用\nflow.set(\"state\", state);\n\n// 可以连一个 debug 看看\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 750,
+        "y": 1100,
+        "wires": [
+            [
+                "8e9a313bee84346f"
+            ]
+        ]
+    },
+    {
+        "id": "8e9a313bee84346f",
+        "type": "debug",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 960,
+        "y": 1100,
+        "wires": []
+    },
+    {
+        "id": "cfe3dda6d5446b98",
+        "type": "debug",
+        "z": "6960865abc7213da",
+        "g": "0a6e231e89b9bc59",
+        "name": "pillow/cmd/power -mqtt out",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1160,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "f014efdc447ad856",
+        "type": "debug",
+        "z": "6960865abc7213da",
+        "g": "f4f718c05e7af34b",
+        "name": "debug 4",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "false",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1020,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "879b7ff70cee1816",
+        "type": "comment",
+        "z": "6960865abc7213da",
+        "name": "debug经验怪谈",
+        "info": "1. 之前从 Node-RED 发给 MQTT 的 JSON 字符串长度 ≈ 238 字节。\n而 ESP8266 用的 PubSubClient 默认最大包大小是 128（或 256）字节，超了就会直接丢弃这条消息，callback() 根本不会被调用，也不会报什么明显错误。\n所以发给esp8266的包要控制字符串长度...",
+        "x": 280,
+        "y": 860,
+        "wires": []
+    },
+    {
+        "id": "4616d66bfecc83fe",
+        "type": "mqtt in",
+        "z": "6960865abc7213da",
+        "g": "c5c215916c4f1ea4",
+        "name": "",
+        "topic": "pillow/sleep/night",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "7eb0b036e6754e72",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 560,
+        "y": 1820,
+        "wires": [
+            [
+                "98a9760f20584f9d"
+            ]
+        ]
+    },
+    {
+        "id": "a82053e08950acba",
+        "type": "http in",
+        "z": "6960865abc7213da",
+        "g": "c5c215916c4f1ea4",
+        "name": "",
+        "url": "/pillow/sleep/night",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 580,
+        "y": 1960,
+        "wires": [
+            [
+                "09afe58018b62391"
+            ]
+        ]
+    },
+    {
+        "id": "98a9760f20584f9d",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "c5c215916c4f1ea4",
+        "name": "Save Night Report",
+        "func": "// Save Night Report\n\nlet report = msg.payload;\n\nif (!report || !report.date) {\n    node.warn(\"Save Night Report: invalid report\");\n    return null;\n}\n\nlet store = global.get(\"sleepReport\") || { nights: {} };\nstore.nights[report.date] = report;\nglobal.set(\"sleepReport\", store);\n\nmsg.payload = {\n    savedDate: report.date,\n    savedReport: report\n};\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 790,
+        "y": 1820,
+        "wires": [
+            [
+                "81c72d818ed84c15"
+            ]
+        ]
+    },
+    {
+        "id": "09afe58018b62391",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "c5c215916c4f1ea4",
+        "name": "Get Report",
+        "func": "// Get Report\n\nfunction pad2(n) { return (n < 10 ? \"0\" : \"\") + n; }\n\nfunction computeLevel(score) {\n    if (typeof score !== \"number\") return \"unknown\";\n    if (score >= 85) return \"good\";\n    if (score >= 70) return \"normal\";\n    return \"poor\";\n}\n\nlet dateStr;\nif (msg.req && msg.req.query && msg.req.query.date) {\n    dateStr = msg.req.query.date;\n} else {\n    const now = new Date();\n    dateStr =\n        now.getFullYear() +\n        \"-\" +\n        pad2(now.getMonth() + 1) +\n        \"-\" +\n        pad2(now.getDate());\n}\n\nlet store = global.get(\"sleepReport\") || { nights: {} };\nlet raw = store.nights[dateStr];\n\nif (!raw) {\n    msg.statusCode = 404;\n    msg.payload = { ok: false, error: \"No report for date \" + dateStr };\n    return msg;\n}\n\nif (raw.ok && raw.source) {\n    msg.payload = raw;\n    return msg;\n}\n\nlet night;\n\n\nif (raw.night) {\n    night = raw.night;\n} else {\n    night = raw;\n}\n\n\nlet quality =\n    typeof night.quality_score === \"number\"\n        ? night.quality_score\n        : night.summary && typeof night.summary.quality_score === \"number\"\n            ? night.summary.quality_score\n            : 0;\n\nlet totalMinutes =\n    typeof night.totalMinutes === \"number\"\n        ? night.totalMinutes\n        : night.summary && typeof night.summary.total_minutes === \"number\"\n            ? night.summary.total_minutes\n            : 0;\n\nlet start_time =\n    night.start_time ||\n    (night.summary && night.summary.start_time) ||\n    \"--:--\";\n\nlet end_time =\n    night.end_time ||\n    (night.summary && night.summary.end_time) ||\n    \"--:--\";\n\n\nlet segments = Array.isArray(night.stages) ? night.stages : (night.stages && night.stages.segments) || [];\nlet awakeMinutes = night.awakeMinutes || 0;\nlet lightMinutes = night.lightMinutes || 0;\nlet deepMinutes = night.deepMinutes || 0;\nlet remMinutes = night.remMinutes || 0;\n\nlet hrSeries =\n    Array.isArray(night.hrSeries)\n        ? night.hrSeries\n        : night.hr && Array.isArray(night.hr.series)\n            ? night.hr.series\n            : [];\n\nlet hr_min =\n    typeof night.hr_min === \"number\"\n        ? night.hr_min\n        : night.hr && typeof night.hr.hr_min === \"number\"\n            ? night.hr.hr_min\n            : null;\n\nlet hr_max =\n    typeof night.hr_max === \"number\"\n        ? night.hr_max\n        : night.hr && typeof night.hr.hr_max === \"number\"\n            ? night.hr.hr_max\n            : null;\n\nlet hr_avg =\n    typeof night.hr_avg === \"number\"\n        ? night.hr_avg\n        : night.hr && typeof night.hr.hr_avg === \"number\"\n            ? night.hr.hr_avg\n            : null;\n\nlet hrv_min =\n    typeof night.hrv_min === \"number\"\n        ? night.hrv_min\n        : night.hr && typeof night.hr.hrv_min === \"number\"\n            ? night.hr.hrv_min\n            : null;\n\nlet hrv_max =\n    typeof night.hrv_max === \"number\"\n        ? night.hrv_max\n        : night.hr && typeof night.hr.hrv_max === \"number\"\n            ? night.hr.hrv_max\n            : null;\n\nlet snoreMinutes =\n    typeof night.snoreMinutes === \"number\"\n        ? night.snoreMinutes\n        : night.signs && typeof night.signs.snore_minutes === \"number\"\n            ? night.signs.snore_minutes\n            : null;\n\nlet breathingMin =\n    typeof night.breathingMin === \"number\"\n        ? night.breathingMin\n        : night.signs && typeof night.signs.breathing_min === \"number\"\n            ? night.signs.breathing_min\n            : null;\n\nlet breathingMax =\n    typeof night.breathingMax === \"number\"\n        ? night.breathingMax\n        : night.signs && typeof night.signs.breathing_max === \"number\"\n            ? night.signs.breathing_max\n            : null;\n\nlet bodyMovementCount =\n    typeof night.bodyMovementCount === \"number\"\n        ? night.bodyMovementCount\n        : night.signs && typeof night.signs.body_movements === \"number\"\n            ? night.signs.body_movements\n            : null;\n\n\nlet unified = {\n    ok: true,\n    source: \"mqtt_simulated\",\n    date: dateStr,\n\n    score: {\n        value: quality,\n        level: computeLevel(quality)\n    },\n\n    summary: {\n        quality_score: quality,\n        total_minutes: totalMinutes,\n        start_time,\n        end_time\n    },\n\n    stages: {\n        segments,\n        summary: {\n            awake: awakeMinutes,\n            light: lightMinutes,\n            deep: deepMinutes,\n            rem: remMinutes\n        }\n    },\n\n    hr: {\n        hr_min,\n        hr_max,\n        hr_avg,\n        hrv_min,\n        hrv_max,\n        series: hrSeries\n    },\n\n    signs: {\n        snore_minutes: snoreMinutes,\n        breathing_min: breathingMin,\n        breathing_max: breathingMax,\n        body_movements: bodyMovementCount\n    }\n};\n\nmsg.payload = unified;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 830,
+        "y": 1960,
+        "wires": [
+            [
+                "f67defbb7e197653"
+            ]
+        ]
+    },
+    {
+        "id": "f67defbb7e197653",
+        "type": "http response",
+        "z": "6960865abc7213da",
+        "g": "c5c215916c4f1ea4",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1010,
+        "y": 1960,
+        "wires": []
+    },
+    {
+        "id": "81c72d818ed84c15",
+        "type": "debug",
+        "z": "6960865abc7213da",
+        "g": "c5c215916c4f1ea4",
+        "name": "debug_save",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1030,
+        "y": 1820,
+        "wires": []
+    },
+    {
+        "id": "ae4586030e168795",
+        "type": "http in",
+        "z": "6960865abc7213da",
+        "g": "841e445ab82f83c3",
+        "name": "",
+        "url": "/pillow/sleep/15days_default",
+        "method": "get",
+        "upload": false,
+        "skipBodyParsing": false,
+        "swaggerDoc": "",
+        "x": 610,
+        "y": 1500,
+        "wires": [
+            [
+                "254ccadcdf6ef86b"
+            ]
+        ]
+    },
+    {
+        "id": "254ccadcdf6ef86b",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "841e445ab82f83c3",
+        "name": "function 1",
+        "func": "/**\n * GET /pillow/sleep/night\n * 为某个 date 生成一整晚的睡眠数据（score + summary + stages + hr + signs）\n * 并缓存在 global.sleepReport.nights[date] 里。\n */\n\n// ---------- 通用工具函数 ----------\nfunction pad2(n) {\n    return (n < 10 ? \"0\" : \"\") + n;\n}\nfunction randInt(min, max) {\n    return Math.floor(min + Math.random() * (max - min + 1));\n}\n\nfunction getDateFromRequest(req) {\n    if (req && req.query && req.query.date) {\n        return req.query.date;\n    }\n    const now = new Date();\n    return (\n        now.getFullYear() +\n        \"-\" +\n        pad2(now.getMonth() + 1) +\n        \"-\" +\n        pad2(now.getDate())\n    );\n}\n\nfunction getSleepReport() {\n    let report = global.get(\"sleepReport\");\n    if (!report || typeof report !== \"object\") {\n        report = { nights: {} };\n    }\n    if (!report.nights || typeof report.nights !== \"object\") {\n        report.nights = {};\n    }\n    return report;\n}\n\n// ---------- 基础 night ----------\nfunction createBaseNight(dateStr) {\n    // 总时长 6~9 小时\n    const totalMinutes = 360 + Math.round(Math.random() * 180);\n\n    // 入睡时间：22:00 ~ 23:30（比之前早）\n    const bedOffsetMin = randInt(22 * 60, 23 * 60 + 30);\n    const startHour = Math.floor(bedOffsetMin / 60);\n    const startMin = bedOffsetMin % 60;\n    const start_time = pad2(startHour) + \":\" + pad2(startMin);\n\n    // 起床时间 = 入睡 + 总时长\n    const endOffsetMin = bedOffsetMin + totalMinutes;\n    const endHour = Math.floor(endOffsetMin / 60) % 24;\n    const endMin = endOffsetMin % 60;\n    const end_time = pad2(endHour) + \":\" + pad2(endMin);\n\n    const snoreMinutes = Math.round(Math.random() * 30);\n    const avgHr = 58 + Math.round(Math.random() * 15);\n\n    // 简单算一个 score（和你原来 /score 的逻辑一致）\n    let score = 85;\n    score -= Math.max(0, (480 - totalMinutes) / 30);   // 少于 8h 扣分\n    score -= snoreMinutes * 0.2;\n    score -= Math.abs(avgHr - 62) * 0.3;\n    score = Math.max(55, Math.min(98, Math.round(score)));\n\n    // signs 相关字段\n    const breathingMin = randInt(10, 14);\n    const breathingMax = breathingMin + randInt(4, 8);\n    const bodyMovementCount = randInt(0, 6);\n\n    return {\n        date: dateStr,\n        quality_score: score,\n        totalMinutes,\n        start_time,\n        end_time,\n        snoreMinutes,\n        avgHr,\n\n        // signs\n        breathingMin,\n        breathingMax,\n        bodyMovementCount,\n\n        // stages\n        awakeMinutes: 0,\n        lightMinutes: 0,\n        deepMinutes: 0,\n        remMinutes: 0,\n        stages: null,\n\n        // hr\n        hrSeries: null,\n        hr_min: null,\n        hr_max: null,\n        hr_avg: null,\n        hrv_min: null,\n        hrv_max: null\n    };\n}\n\nfunction getOrCreateNight(report, dateStr) {\n    if (!report.nights[dateStr]) {\n        report.nights[dateStr] = createBaseNight(dateStr);\n        global.set(\"sleepReport\", report);\n    }\n    return report.nights[dateStr];\n}\n\n// ---------- 生成 stages ----------\nfunction ensureStages(night) {\n    if (night.stages && Array.isArray(night.stages) && night.stages.length > 0) {\n        return;\n    }\n\n    const totalMinutes = night.totalMinutes || 420;\n    let remaining = totalMinutes;\n    const segments = [];\n\n    let awakeTotal = 0;\n    let lightTotal = 0;\n    let deepTotal = 0;\n    let remTotal = 0;\n\n    function pushSegment(stage, minDur, maxDur) {\n        if (remaining <= 5) return;\n        const maxAllowed = remaining - 5;\n        const d = Math.min(maxAllowed, randInt(minDur, maxDur));\n        if (d <= 0) return;\n\n        segments.push({ stage, duration: d });\n        remaining -= d;\n\n        if (stage === \"Awake\") awakeTotal += d;\n        else if (stage === \"Light\") lightTotal += d;\n        else if (stage === \"Deep\") deepTotal += d;\n        else if (stage === \"REM\") remTotal += d;\n    }\n\n    // 入睡前短暂清醒\n    pushSegment(\"Awake\", 5, 15);\n\n    // 多个睡眠周期\n    while (remaining > 60) {\n        pushSegment(\"Light\", 20, 50);\n        pushSegment(\"Deep\", 20, 50);\n        pushSegment(\"Light\", 10, 40);\n        pushSegment(\"REM\", 10, 30);\n    }\n\n    // 收尾\n    if (remaining > 0) {\n        let lastStage;\n        if (remaining < 15) lastStage = \"Awake\";\n        else if (remaining < 40) lastStage = \"REM\";\n        else lastStage = \"Light\";\n\n        segments.push({ stage: lastStage, duration: remaining });\n\n        if (lastStage === \"Awake\") awakeTotal += remaining;\n        else if (lastStage === \"Light\") lightTotal += remaining;\n        else if (lastStage === \"Deep\") deepTotal += remaining;\n        else if (lastStage === \"REM\") remTotal += remaining;\n\n        remaining = 0;\n    }\n\n    night.stages = segments;\n    night.awakeMinutes = awakeTotal;\n    night.lightMinutes = lightTotal;\n    night.deepMinutes = deepTotal;\n    night.remMinutes = remTotal;\n}\n\n// ---------- 生成 HR ----------\nfunction ensureHeartRateSeries(night) {\n    if (night.hrSeries && Array.isArray(night.hrSeries) && night.hrSeries.length > 0) {\n        return;\n    }\n\n    const totalMinutes = night.totalMinutes || 420;\n\n    let startHour = 0;\n    let startMin = 0;\n    if (night.start_time && typeof night.start_time === \"string\") {\n        const parts = night.start_time.split(\":\");\n        if (parts.length === 2) {\n            startHour = parseInt(parts[0], 10) || 0;\n            startMin = parseInt(parts[1], 10) || 0;\n        }\n    }\n\n    const intervalMin = 10;\n    const points = Math.max(3, Math.floor(totalMinutes / intervalMin) + 1);\n\n    const baseHr = 60 + Math.random() * 8;\n\n    const series = [];\n    let hrMin = 999;\n    let hrMax = 0;\n    let hrSum = 0;\n\n    for (let i = 0; i < points; i++) {\n        const tMinFromStart = i * intervalMin;\n        const phase = (i / points) * 2 * Math.PI;\n        let hr = baseHr + Math.sin(phase) * 5 + (Math.random() - 0.5) * 4;\n        hr = Math.round(Math.max(50, Math.min(90, hr)));\n\n        hrMin = Math.min(hrMin, hr);\n        hrMax = Math.max(hrMax, hr);\n        hrSum += hr;\n\n        const totalFromMidnight = startHour * 60 + startMin + tMinFromStart;\n        const h = Math.floor(totalFromMidnight / 60) % 24;\n        const m = totalFromMidnight % 60;\n        const timeLabel = pad2(h) + \":\" + pad2(m);\n\n        series.push({ time: timeLabel, hr });\n    }\n\n    const hrAvg = Math.round(hrSum / points);\n    const hrvMin = randInt(30, 60);\n    const hrvMax = randInt(80, 130);\n\n    night.hrSeries = series;\n    night.hr_min = hrMin;\n    night.hr_max = hrMax;\n    night.hr_avg = hrAvg;\n    night.hrv_min = hrvMin;\n    night.hrv_max = hrvMax;\n}\n\n// ---------- 生成 signs（如果缺的话补齐） ----------\nfunction ensureSigns(night) {\n    if (typeof night.snoreMinutes !== \"number\") {\n        night.snoreMinutes = Math.round(Math.random() * 30);\n    }\n    if (\n        typeof night.breathingMin !== \"number\" ||\n        typeof night.breathingMax !== \"number\"\n    ) {\n        const minB = randInt(10, 14);\n        night.breathingMin = minB;\n        night.breathingMax = minB + randInt(4, 8);\n    }\n    if (typeof night.bodyMovementCount !== \"number\") {\n        night.bodyMovementCount = randInt(0, 6);\n    }\n}\n\n// ---------- 主流程 ----------\nconst dateStr = getDateFromRequest(msg.req);\nconst report = getSleepReport();\nconst night = getOrCreateNight(report, dateStr);\n\n// 生成/补全各个部分\nensureStages(night);\nensureHeartRateSeries(night);\nensureSigns(night);\n\n// 缓存\nglobal.set(\"sleepReport\", report);\n\n// 构造返回（结构和你 MQTT 那条线可以保持一致）\nconst scoreValue = night.quality_score || 0;\nlet scoreLevel = \"normal\";\nif (scoreValue >= 85) scoreLevel = \"great\";\nelse if (scoreValue <= 70) scoreLevel = \"poor\";\n\nconst score = {\n    value: scoreValue,\n    level: scoreLevel\n};\n\nconst summary = {\n    quality_score: scoreValue,\n    total_minutes: night.totalMinutes,\n    start_time: night.start_time,\n    end_time: night.end_time\n};\n\nconst stages = {\n    segments: night.stages || [],\n    summary: {\n        awake: night.awakeMinutes || 0,\n        light: night.lightMinutes || 0,\n        deep: night.deepMinutes || 0,\n        rem: night.remMinutes || 0\n    }\n};\n\nconst hr = {\n    hr_min: night.hr_min,\n    hr_max: night.hr_max,\n    hr_avg: night.hr_avg || night.avgHr,\n    hrv_min: night.hrv_min,\n    hrv_max: night.hrv_max,\n    series: night.hrSeries || []\n};\n\nconst signs = {\n    snore_minutes: night.snoreMinutes || 0,\n    breathing_min: night.breathingMin,\n    breathing_max: night.breathingMax,\n    body_movements: night.bodyMovementCount\n};\n\nmsg.payload = {\n    ok: true,\n    source: \"http_simulated\",   // 前端可以知道这是模拟数据\n    date: night.date,\n    score,\n    summary,\n    stages,\n    hr,\n    signs\n};\nmsg.statusCode = 200;\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 840,
+        "y": 1500,
+        "wires": [
+            [
+                "ac64e4d07a7064eb"
+            ]
+        ]
+    },
+    {
+        "id": "ac64e4d07a7064eb",
+        "type": "http response",
+        "z": "6960865abc7213da",
+        "g": "841e445ab82f83c3",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1070,
+        "y": 1500,
+        "wires": []
+    },
+    {
+        "id": "32a02b3269017e2a",
+        "type": "inject",
+        "z": "6960865abc7213da",
+        "g": "a51c07b6450ebcd5",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 570,
+        "y": 1680,
+        "wires": [
+            [
+                "c8a22b3227e9c2f7"
+            ]
+        ]
+    },
+    {
+        "id": "c8a22b3227e9c2f7",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "a51c07b6450ebcd5",
+        "name": "Simulate Physio Data",
+        "func": "// Function 1: Simulate Physio Data\n\n// -------- 工具函数 --------\nfunction pad2(n) {\n    return (n < 10 ? \"0\" : \"\") + n;\n}\nfunction randInt(min, max) {\n    return Math.floor(min + Math.random() * (max - min + 1));\n}\n\n// 基础 night：总时长 + 入睡/起床时间 + snore + avgHr\nfunction createBaseNight(dateStr) {\n    const totalMinutes = 360 + Math.round(Math.random() * 180); // 6~9 小时\n\n    const bedOffsetMin = randInt(1, 90); // 00:01 ~ 01:30\n    const startHour = Math.floor(bedOffsetMin / 60);\n    const startMin = bedOffsetMin % 60;\n    const start_time = pad2(startHour) + \":\" + pad2(startMin);\n\n    const endOffsetMin = bedOffsetMin + totalMinutes;\n    const endHour = Math.floor(endOffsetMin / 60) % 24;\n    const endMin = endOffsetMin % 60;\n    const end_time = pad2(endHour) + \":\" + pad2(endMin);\n\n    const snoreMinutes = Math.round(Math.random() * 30);\n    const avgHr = 58 + Math.round(Math.random() * 15);\n\n    return {\n        date: dateStr,\n        totalMinutes,\n        start_time,\n        end_time,\n        snoreMinutes,\n        avgHr,\n\n        awakeMinutes: 0,\n        lightMinutes: 0,\n        deepMinutes: 0,\n        remMinutes: 0,\n\n        stages: null,\n        hrSeries: null,\n        hr_min: null,\n        hr_max: null,\n        hr_avg: null,\n        hrv_min: null,\n        hrv_max: null,\n\n        breathingMin: null,\n        breathingMax: null,\n        bodyMovementCount: null,\n\n        quality_score: null  \n    };\n}\n\n// 生成睡眠阶段\nfunction ensureStages(night) {\n    if (night.stages && Array.isArray(night.stages) && night.stages.length > 0) {\n        return;\n    }\n\n    const totalMinutes = night.totalMinutes || 420;\n    let remaining = totalMinutes;\n    const segments = [];\n\n    let awakeTotal = 0;\n    let lightTotal = 0;\n    let deepTotal = 0;\n    let remTotal = 0;\n\n    function pushSegment(stage, minDur, maxDur) {\n        if (remaining <= 5) return;\n        const maxAllowed = remaining - 5;\n        const d = Math.min(maxAllowed, randInt(minDur, maxDur));\n        if (d <= 0) return;\n\n        segments.push({ stage, duration: d });\n        remaining -= d;\n\n        if (stage === \"Awake\") awakeTotal += d;\n        else if (stage === \"Light\") lightTotal += d;\n        else if (stage === \"Deep\") deepTotal += d;\n        else if (stage === \"REM\") remTotal += d;\n    }\n\n    // 入睡前短暂清醒\n    pushSegment(\"Awake\", 5, 15);\n\n    // 多个睡眠周期\n    while (remaining > 60) {\n        pushSegment(\"Light\", 20, 50);\n        pushSegment(\"Deep\", 20, 50);\n        pushSegment(\"Light\", 10, 40);\n        pushSegment(\"REM\", 10, 30);\n    }\n\n    // 剩余收尾\n    if (remaining > 0) {\n        let lastStage;\n        if (remaining < 15) lastStage = \"Awake\";\n        else if (remaining < 40) lastStage = \"REM\";\n        else lastStage = \"Light\";\n\n        segments.push({ stage: lastStage, duration: remaining });\n\n        if (lastStage === \"Awake\") awakeTotal += remaining;\n        else if (lastStage === \"Light\") lightTotal += remaining;\n        else if (lastStage === \"Deep\") deepTotal += remaining;\n        else if (lastStage === \"REM\") remTotal += remaining;\n\n        remaining = 0;\n    }\n\n    night.stages = segments;\n    night.awakeMinutes = awakeTotal;\n    night.lightMinutes = lightTotal;\n    night.deepMinutes = deepTotal;\n    night.remMinutes = remTotal;\n}\n\n// 生成 HR 序列\nfunction ensureHeartRateSeries(night) {\n    if (night.hrSeries && Array.isArray(night.hrSeries) && night.hrSeries.length > 0) {\n        return;\n    }\n\n    const totalMinutes = night.totalMinutes || 420;\n\n    let startHour = 0;\n    let startMin = 0;\n    if (night.start_time && typeof night.start_time === \"string\") {\n        const parts = night.start_time.split(\":\");\n        if (parts.length === 2) {\n            startHour = parseInt(parts[0], 10) || 0;\n            startMin = parseInt(parts[1], 10) || 0;\n        }\n    }\n\n    const intervalMin = 10;\n    const points = Math.max(3, Math.floor(totalMinutes / intervalMin) + 1);\n\n    const baseHr = 60 + Math.random() * 8;\n\n    const series = [];\n    let hrMin = 999;\n    let hrMax = 0;\n    let hrSum = 0;\n\n    for (let i = 0; i < points; i++) {\n        const tMinFromStart = i * intervalMin;\n        const phase = (i / points) * 2 * Math.PI;\n        let hr = baseHr + Math.sin(phase) * 5 + (Math.random() - 0.5) * 4;\n        hr = Math.round(Math.max(50, Math.min(90, hr)));\n\n        hrMin = Math.min(hrMin, hr);\n        hrMax = Math.max(hrMax, hr);\n        hrSum += hr;\n\n        const totalFromMidnight = startHour * 60 + startMin + tMinFromStart;\n        const h = Math.floor(totalFromMidnight / 60) % 24;\n        const m = totalFromMidnight % 60;\n        const timeLabel = pad2(h) + \":\" + pad2(m);\n\n        series.push({ time: timeLabel, hr });\n    }\n\n    const hrAvg = Math.round(hrSum / points);\n    const hrvMin = randInt(30, 60);\n    const hrvMax = randInt(80, 130);\n\n    night.hrSeries = series;\n    night.hr_min = hrMin;\n    night.hr_max = hrMax;\n    night.hr_avg = hrAvg;\n    night.hrv_min = hrvMin;\n    night.hrv_max = hrvMax;\n}\n\n// 生成打鼾 / 呼吸 / 体动\nfunction ensureSigns(night) {\n    if (typeof night.snoreMinutes !== \"number\") {\n        night.snoreMinutes = Math.round(Math.random() * 30);\n    }\n    if (typeof night.breathingMin !== \"number\" || typeof night.breathingMax !== \"number\") {\n        const minB = randInt(10, 14);\n        night.breathingMin = minB;\n        night.breathingMax = minB + randInt(4, 8);\n    }\n    if (typeof night.bodyMovementCount !== \"number\") {\n        night.bodyMovementCount = randInt(0, 6);\n    }\n}\n\n// -------- 主逻辑：生成一晚生理数据 --------\n\n// 输入：msg.payload.date \nlet dateStr;\nif (msg.payload && msg.payload.date) {\n    dateStr = msg.payload.date;\n} else {\n    const now = new Date();\n    dateStr = now.getFullYear() + \"-\" + pad2(now.getMonth() + 1) + \"-\" + pad2(now.getDate());\n}\n\n// 生成 base night + stages + hr + signs\nlet night = createBaseNight(dateStr);\nensureStages(night);\nensureHeartRateSeries(night);\nensureSigns(night);\n\n// 存在 msg.night 供后续 Function 使用\nmsg.night = night;\nmsg.payload = night;  \n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 1680,
+        "wires": [
+            [
+                "bb39aadca579a3b6"
+            ]
+        ]
+    },
+    {
+        "id": "a76508a806a69143",
+        "type": "mqtt out",
+        "z": "6960865abc7213da",
+        "g": "a51c07b6450ebcd5",
+        "name": "",
+        "topic": "pillow/sleep/night",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "7eb0b036e6754e72",
+        "x": 1550,
+        "y": 1680,
+        "wires": []
+    },
+    {
+        "id": "bb39aadca579a3b6",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "a51c07b6450ebcd5",
+        "name": "Compute Sleep Score",
+        "func": "// Function 2: Compute Sleep Score\n\nlet night = msg.night;\nif (!night) {\n    node.warn(\"No night data in msg.night\");\n    return null;\n}\n\n// 基础：\nlet score = 85;\n\n// 1) 总时长惩罚 / 奖励（8h 为理想）\nconst totalMinutes = night.totalMinutes || 420;\nscore -= Math.max(0, (480 - totalMinutes) / 30);   // 少于 8h 扣分\n\n// 2) 打鼾时长\nconst snoreMinutes = night.snoreMinutes || 0;\nscore -= snoreMinutes * 0.2;\n\n// 3) 平均心率偏离 62\nconst avgHr = night.hr_avg || night.avgHr || 62;\nscore -= Math.abs(avgHr - 62) * 0.3;\n\n// 4) 睡眠结构额外加减分\nconst deepRatio = (night.deepMinutes || 0) / totalMinutes;\nconst remRatio = (night.remMinutes || 0) / totalMinutes;\n\n// 深睡 15–25% 区间较优\nif (deepRatio < 0.10) score -= 5;\nelse if (deepRatio > 0.30) score -= 2;\nelse score += 2;\n\n// REM 20–30% 区间较优\nif (remRatio < 0.15) score -= 3;\nelse if (remRatio > 0.35) score -= 2;\nelse score += 1;\n\n// 限幅\nscore = Math.max(55, Math.min(98, Math.round(score)));\n\nnight.quality_score = score;\n\n// 写回 msg\nmsg.night = night;\nmsg.payload = night;\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1080,
+        "y": 1680,
+        "wires": [
+            [
+                "cb155972a6e761e4"
+            ]
+        ]
+    },
+    {
+        "id": "cb155972a6e761e4",
+        "type": "function",
+        "z": "6960865abc7213da",
+        "g": "a51c07b6450ebcd5",
+        "name": "Build Night Report",
+        "func": "// Build Night Report\n\nfunction computeLevel(score) {\n    if (typeof score !== \"number\") return \"unknown\";\n    if (score >= 85) return \"good\";\n    if (score >= 70) return \"normal\";\n    return \"poor\";\n}\n\nlet night = msg.night;\n\nif (!night || !night.date) {\n    node.warn(\"Build Night Report: night is missing\");\n    return null;\n}\n\nlet dateStr = night.date;\n\nlet report = {\n    ok: true,\n    source: \"mqtt_simulated\",\n    date: dateStr,\n\n    score: {\n        value: typeof night.quality_score === \"number\" ? night.quality_score : 0,\n        level: computeLevel(night.quality_score)\n    },\n\n    summary: {\n        quality_score: night.quality_score || 0,\n        total_minutes: night.totalMinutes || 0,\n        start_time: night.start_time || \"--:--\",\n        end_time: night.end_time || \"--:--\"\n    },\n\n    stages: {\n        segments: Array.isArray(night.stages) ? night.stages : [],\n        summary: {\n            awake: night.awakeMinutes || 0,\n            light: night.lightMinutes || 0,\n            deep: night.deepMinutes || 0,\n            rem: night.remMinutes || 0\n        }\n    },\n\n    hr: {\n        hr_min: night.hr_min,\n        hr_max: night.hr_max,\n        hr_avg: night.hr_avg,\n        hrv_min: night.hrv_min,\n        hrv_max: night.hrv_max,\n        series: Array.isArray(night.hrSeries) ? night.hrSeries : []\n    },\n\n    signs: {\n        snore_minutes: night.snoreMinutes,\n        breathing_min: night.breathingMin,\n        breathing_max: night.breathingMax,\n        body_movements: night.bodyMovementCount\n    }\n};\n\n\nmsg.payload = report;\n\nlet store = global.get(\"sleepReport\") || { nights: {} };\nstore.nights[dateStr] = report;\nglobal.set(\"sleepReport\", store);\n\nreturn msg;\n",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1330,
+        "y": 1680,
+        "wires": [
+            [
+                "a76508a806a69143",
+                "85fe34509e095104"
+            ]
+        ]
+    },
+    {
+        "id": "85fe34509e095104",
+        "type": "debug",
+        "z": "6960865abc7213da",
+        "g": "c5c215916c4f1ea4",
+        "name": "debug mqtt",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1530,
+        "y": 1760,
+        "wires": []
+    },
+    {
+        "id": "66708498471268e0",
+        "type": "tab",
+        "label": "Light&Volume [LIVE]",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "4a21cd92115130f4",
+        "type": "group",
+        "z": "66708498471268e0",
+        "name": "VolumeAdjust",
+        "style": {
+            "label": true
+        },
+        "nodes": [
+            "7c3e40feba82dbba",
+            "b9c75349f1d4135d",
+            "7848e8d04f6231bb",
+            "b449e909882a6ba4",
+            "d7b0515b0d4f64fb",
+            "41850b5302e54d12",
+            "c7ed28254780787a",
+            "9845995a1efb1955",
+            "75de43d8c5cfaf8c",
+            "aa15ca03d19fb7cb",
+            "b2440c004a8617e1",
+            "8a8dadea05676f21",
+            "802a471cdfec48d5",
+            "a217e845441b7421",
+            "b429e5e56f52a243",
+            "62ca62844b3e749b"
+        ],
+        "x": 134,
+        "y": 479,
+        "w": 892,
+        "h": 382
+    },
+    {
+        "id": "68a51e0edac5b48c",
+        "type": "group",
+        "z": "66708498471268e0",
+        "name": "LightAdjust",
+        "style": {
+            "label": true
+        },
+        "nodes": [
+            "a1295737c2bbea41",
+            "38c7955e8210f825",
+            "fa7378553ae0542d",
+            "5c2b6a5e6918f6c3",
+            "12034157842035dc",
+            "36a69fcbb87d3057",
+            "e79aa4b89cdc0c7c",
+            "08a61c52d6d9ab87",
+            "8b050e5e70c7208b",
+            "bf1e725b0fc15335",
+            "9c1c7c3d4b02692a"
+        ],
+        "x": 124,
+        "y": 19,
+        "w": 1202,
+        "h": 402
+    },
+    {
+        "id": "a1295737c2bbea41",
+        "type": "debug",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "debug output light",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 990,
+        "y": 120,
+        "wires": []
+    },
+    {
+        "id": "38c7955e8210f825",
+        "type": "http in",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "GET /get_state",
+        "url": "/get_state",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 230,
+        "y": 60,
+        "wires": [
+            [
+                "fa7378553ae0542d"
+            ]
+        ]
+    },
+    {
+        "id": "fa7378553ae0542d",
+        "type": "function",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "Get State",
+        "func": "const brightness = flow.get(\"brightness\") ?? 65;\nconst color = flow.get(\"color\") ?? \"#FFFFFF\";\nmsg.payload = { brightness, color };\nreturn msg;",
+        "outputs": 1,
+        "x": 470,
+        "y": 60,
+        "wires": [
+            [
+                "5c2b6a5e6918f6c3"
+            ]
+        ]
+    },
+    {
+        "id": "5c2b6a5e6918f6c3",
+        "type": "http response",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "HTTP Get OK",
+        "statusCode": "200",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 700,
+        "y": 60,
+        "wires": []
+    },
+    {
+        "id": "12034157842035dc",
+        "type": "http in",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "POST /set_state",
+        "url": "/set_state",
+        "method": "post",
+        "upload": false,
+        "x": 230,
+        "y": 200,
+        "wires": [
+            [
+                "36a69fcbb87d3057"
+            ]
+        ]
+    },
+    {
+        "id": "36a69fcbb87d3057",
+        "type": "switch",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "Brightness / Color",
+        "property": "payload",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "hask",
+                "v": "brightness",
+                "vt": "str"
+            },
+            {
+                "t": "hask",
+                "v": "color",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 2,
+        "x": 460,
+        "y": 200,
+        "wires": [
+            [
+                "e79aa4b89cdc0c7c"
+            ],
+            [
+                "08a61c52d6d9ab87"
+            ]
+        ]
+    },
+    {
+        "id": "e79aa4b89cdc0c7c",
+        "type": "function",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "Update Brightness",
+        "func": "let b = msg.payload.brightness;\nif (b == null) {\n    return null; // 如果没有亮度数据，不发送消息\n}\nb = Math.max(0, Math.min(100, Math.round(b)));\nflow.set(\"brightness\", b);\nmsg.topic = \"lamp/brightness\";\nmsg.payload = b.toString();\nreturn msg;",
+        "outputs": 1,
+        "x": 710,
+        "y": 160,
+        "wires": [
+            [
+                "8b050e5e70c7208b",
+                "a1295737c2bbea41",
+                "bf1e725b0fc15335"
+            ]
+        ]
+    },
+    {
+        "id": "08a61c52d6d9ab87",
+        "type": "function",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "Update Color",
+        "func": "let c = msg.payload.color;\nif (!/^#[0-9A-Fa-f]{6}$/.test(c)) {\n    // 如果颜色不符合 HEX 格式，发送错误响应消息\n    return { payload: { error: \"Invalid color format (must be #RRGGBB)\" }, statusCode: 400 };\n}\nflow.set(\"color\", c);\nmsg.topic = \"lamp/color\";\nmsg.payload = c.replace('#', ''); // 移除 # 号，以纯 HEX 格式发送给 ESP8266\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 700,
+        "y": 300,
+        "wires": [
+            [
+                "8b050e5e70c7208b",
+                "bf1e725b0fc15335",
+                "a1295737c2bbea41"
+            ]
+        ]
+    },
+    {
+        "id": "8b050e5e70c7208b",
+        "type": "mqtt out",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "MQTT Publish",
+        "topic": "",
+        "qos": "0",
+        "retain": "false",
+        "respTopic": "",
+        "contentType": "",
+        "expiry": "",
+        "broker": "7eb0b036e6754e72",
+        "x": 1000,
+        "y": 380,
+        "wires": []
+    },
+    {
+        "id": "bf1e725b0fc15335",
+        "type": "join",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "Join for Single Response",
+        "mode": "manual",
+        "build": "all",
+        "property": "payload",
+        "propertyType": "msg",
+        "key": "topic",
+        "joiner": "\\n",
+        "joinerType": "str",
+        "accumulate": false,
+        "timeout": "0",
+        "x": 1010,
+        "y": 240,
+        "wires": [
+            [
+                "9c1c7c3d4b02692a"
+            ]
+        ]
+    },
+    {
+        "id": "9c1c7c3d4b02692a",
+        "type": "http response",
+        "z": "66708498471268e0",
+        "g": "68a51e0edac5b48c",
+        "name": "HTTP OK",
+        "statusCode": "200",
+        "headers": {
+            "content-type": "application/json"
+        },
+        "x": 1240,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "setVolume",
+        "type": "http in",
+        "z": "66708498471268e0",
+        "d": true,
+        "name": "POST /set_volume",
+        "url": "/set_volume",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 170,
+        "y": 980,
+        "wires": [
+            [
+                "saveVolume"
+            ]
+        ]
+    },
+    {
+        "id": "jsonSetVolume",
+        "type": "json",
+        "z": "66708498471268e0",
+        "d": true,
+        "name": "",
+        "property": "payload",
+        "action": "",
+        "pretty": false,
+        "x": 330,
+        "y": 1180,
+        "wires": [
+            [
+                "returnVolume"
+            ]
+        ]
+    },
+    {
+        "id": "saveVolume",
+        "type": "function",
+        "z": "66708498471268e0",
+        "d": true,
+        "name": "Save Volume & Publish MQTT",
+        "func": "global.set('volume', msg.payload.volume);\nmsg.topic = \"pillow/volume\";\nmsg.payload = msg.payload.volume;\nreturn msg;",
+        "outputs": 1,
+        "x": 490,
+        "y": 980,
+        "wires": [
+            [
+                "httpResponseGet",
+                "mqttOut"
+            ]
+        ]
+    },
+    {
+        "id": "mqttOut",
+        "type": "mqtt out",
+        "z": "66708498471268e0",
+        "d": true,
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "7eb0b036e6754e72",
+        "x": 910,
+        "y": 1020,
+        "wires": []
+    },
+    {
+        "id": "httpResponseSet",
+        "type": "http response",
+        "z": "66708498471268e0",
+        "d": true,
+        "name": "",
+        "x": 910,
+        "y": 1180,
+        "wires": []
+    },
+    {
+        "id": "getVolume",
+        "type": "http in",
+        "z": "66708498471268e0",
+        "d": true,
+        "name": "GET /get_volume",
+        "url": "/get_volume",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 1180,
+        "wires": [
+            [
+                "jsonSetVolume"
+            ]
+        ]
+    },
+    {
+        "id": "returnVolume",
+        "type": "function",
+        "z": "66708498471268e0",
+        "d": true,
+        "name": "Return Volume",
+        "func": "let v = global.get('volume') || 50;\nmsg.payload = { volume: v };\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 1180,
+        "wires": [
+            [
+                "httpResponseSet"
+            ]
+        ]
+    },
+    {
+        "id": "httpResponseGet",
+        "type": "http response",
+        "z": "66708498471268e0",
+        "d": true,
+        "name": "",
+        "x": 910,
+        "y": 960,
+        "wires": []
+    },
+    {
+        "id": "7c3e40feba82dbba",
+        "type": "mqtt in",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "APP → MQTT Volume",
+        "topic": "pillow/volume",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "7eb0b036e6754e72",
+        "nl": false,
+        "rap": false,
+        "rh": 0,
+        "inputs": 0,
+        "x": 260,
+        "y": 760,
+        "wires": [
+            [
+                "802a471cdfec48d5"
+            ]
+        ]
+    },
+    {
+        "id": "b9c75349f1d4135d",
+        "type": "mqtt in",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "APP → MQTT Music",
+        "topic": "pillow/music",
+        "qos": "0",
+        "datatype": "auto",
+        "broker": "7eb0b036e6754e72",
+        "nl": false,
+        "rap": false,
+        "rh": 0,
+        "inputs": 0,
+        "x": 250,
+        "y": 820,
+        "wires": [
+            [
+                "a217e845441b7421"
+            ]
+        ]
+    },
+    {
+        "id": "7848e8d04f6231bb",
+        "type": "http in",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "HTTP GET Volume",
+        "url": "/get_volume",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 250,
+        "y": 540,
+        "wires": [
+            [
+                "9845995a1efb1955"
+            ]
+        ]
+    },
+    {
+        "id": "b449e909882a6ba4",
+        "type": "http in",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "HTTP POST Set Volume",
+        "url": "/set_volume",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 270,
+        "y": 600,
+        "wires": [
+            [
+                "d7b0515b0d4f64fb"
+            ]
+        ]
+    },
+    {
+        "id": "d7b0515b0d4f64fb",
+        "type": "function",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "save volume and publish",
+        "func": "const body = msg.payload;\nvar v = parseInt(body.volume);\nflow.set(\"current_volume\", v);\nreturn [\n    { topic: \"pillow/volume\", payload: v },\n    { payload: { ok: true } }\n];",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 600,
+        "wires": [
+            [
+                "41850b5302e54d12"
+            ],
+            [
+                "c7ed28254780787a"
+            ]
+        ]
+    },
+    {
+        "id": "41850b5302e54d12",
+        "type": "mqtt out",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "MQTT → ESP Volume",
+        "topic": "pillow/volume",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "7eb0b036e6754e72",
+        "x": 890,
+        "y": 580,
+        "wires": []
+    },
+    {
+        "id": "c7ed28254780787a",
+        "type": "http response",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "Return volume JSON",
+        "x": 900,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "9845995a1efb1955",
+        "type": "function",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "return current volume",
+        "func": "const v = flow.get(\"current_volume\") || 60;\nmsg.payload = { volume: v };\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 610,
+        "y": 540,
+        "wires": [
+            [
+                "c7ed28254780787a"
+            ]
+        ]
+    },
+    {
+        "id": "75de43d8c5cfaf8c",
+        "type": "http in",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "HTTP POST Set Music",
+        "url": "/set_music",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 260,
+        "y": 660,
+        "wires": [
+            [
+                "aa15ca03d19fb7cb"
+            ]
+        ]
+    },
+    {
+        "id": "aa15ca03d19fb7cb",
+        "type": "function",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "save music and publish",
+        "func": "const body = msg.payload;\nvar m = parseInt(body.music);\nflow.set(\"music_index\", m);\nreturn [\n    { topic: \"pillow/music\", payload: m },\n    { payload: { ok: true } }\n];",
+        "outputs": 2,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 600,
+        "y": 660,
+        "wires": [
+            [
+                "8a8dadea05676f21"
+            ],
+            [
+                "b2440c004a8617e1"
+            ]
+        ]
+    },
+    {
+        "id": "b2440c004a8617e1",
+        "type": "http response",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "Return music JSON",
+        "x": 890,
+        "y": 700,
+        "wires": []
+    },
+    {
+        "id": "8a8dadea05676f21",
+        "type": "mqtt out",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "MQTT → ESP Music",
+        "topic": "pillow/music",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "7eb0b036e6754e72",
+        "x": 890,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "802a471cdfec48d5",
+        "type": "function",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "MQTT volume",
+        "func": "msg.payload = parseInt(msg.payload);\nflow.set(\"current_volume\", msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 760,
+        "wires": [
+            [
+                "b429e5e56f52a243"
+            ]
+        ]
+    },
+    {
+        "id": "a217e845441b7421",
+        "type": "function",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "music idx from MQTT",
+        "func": "msg.payload = parseInt(msg.payload);\nflow.set(\"music_index\", msg.payload);\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 590,
+        "y": 820,
+        "wires": [
+            [
+                "62ca62844b3e749b"
+            ]
+        ]
+    },
+    {
+        "id": "b429e5e56f52a243",
+        "type": "debug",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "Volume Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 890,
+        "y": 760,
+        "wires": []
+    },
+    {
+        "id": "62ca62844b3e749b",
+        "type": "debug",
+        "z": "66708498471268e0",
+        "g": "4a21cd92115130f4",
+        "name": "Music Debug",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 880,
+        "y": 820,
+        "wires": []
+    },
+    {
+        "id": "7eb0b036e6754e72",
+        "type": "mqtt-broker",
+        "name": "local_mosquitto",
+        "broker": "150.158.158.233",
+        "port": 1883,
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    }
+]
