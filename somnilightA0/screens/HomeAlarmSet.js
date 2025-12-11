@@ -78,6 +78,10 @@ export function HomeAlarmSetScreen({navigation}) {
     const shortSleepAlertShown = React.useRef(false); // Track if alert has been shown this session
     const [isDragging, setIsDragging] = useState(false); // Track if user is currently dragging handles
     const pendingShortSleepCheck = React.useRef(null); // Store pending short sleep check
+    
+    // DEMO MODE: State for precise time adjustment modal
+    const [demoModalVisible, setDemoModalVisible] = useState(false);
+    const DEMO_MODE_ENABLED = false; // FOR 12.11 DEMO ONLY, set to false for release version
 
     // Move alarm configs state to parent (HomeAlarmSetScreen) so it's shared
     // Store alarm configurations in state and AsyncStorage (local cache)
@@ -626,6 +630,59 @@ export function HomeAlarmSetScreen({navigation}) {
                     </View>
             </ImageBackground>
             
+            {/* DEMO ONLY Button - overlay in bottom right corner */}
+            {DEMO_MODE_ENABLED && (
+                <TouchableOpacity
+                    style={{
+                        position: 'absolute',
+                        bottom: 20,
+                        right: 20,
+                        backgroundColor: 'rgba(255, 50, 50, 0.8)',
+                        paddingHorizontal: 16,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 100, 100, 1)',
+                        zIndex: 1000,
+                    }}
+                    onPress={() => setDemoModalVisible(true)}
+                >
+                    <Text style={{ ...textStyles.semibold15, fontSize: 12, color: 'white' }}>
+                        DEMO ONLY
+                    </Text>
+                </TouchableOpacity>
+            )}
+            
+            {/* DEMO Mode Modal - precise time adjustment */}
+            <Modal
+                animationIn="fadeIn"
+                animationOut="fadeOut"
+                transparent={true}
+                isVisible={demoModalVisible}
+                onRequestClose={() => setDemoModalVisible(false)}
+            >
+                <TouchableWithoutFeedback onPress={() => setDemoModalVisible(false)}>
+                    <View style={{ ...containers.CenterAJ, backgroundColor: 'transparent' }}>
+                        <TouchableWithoutFeedback>
+                            <View>
+                                <DemoTimePicker
+                                    sunriseHour={sunriseHour}
+                                    sunriseMin={sunriseMin}
+                                    wakeupHour={wakeupHour}
+                                    wakeupMin={wakeupMin}
+                                    onConfirm={(sunrise, wakeup) => {
+                                        handleSunriseChange(sunrise.h, sunrise.m);
+                                        handleWakeupChange(wakeup.h, wakeup.m);
+                                        setDemoModalVisible(false);
+                                    }}
+                                    onClose={() => setDemoModalVisible(false)}
+                                />
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+            
         </View>
     )
 }
@@ -807,6 +864,134 @@ const TimeSetCell = ({addr, text, aniIn, aniOut, hour = 11, min = 0, onTimeChang
         </TouchableOpacity>
     )
 }
+
+// DEMO MODE: Precise time picker for 1-minute intervals
+const DemoTimePicker = ({ sunriseHour, sunriseMin, wakeupHour, wakeupMin, onConfirm, onClose }) => {
+    const [sunH, setSunH] = useState(sunriseHour);
+    const [sunM, setSunM] = useState(sunriseMin);
+    const [wakeH, setWakeH] = useState(wakeupHour);
+    const [wakeM, setWakeM] = useState(wakeupMin);
+    
+    const bgcolor = '#0C112E';
+    const padding = 20;
+    const mainRadius = 40;
+    const barWidth = 100;
+    
+    // Generate minute options from 0-59
+    const minuteOptions = Array.from({ length: 60 }, (_, i) => i);
+    
+    return (
+        <View style={{
+            backgroundColor: bgcolor,
+            padding: padding,
+            borderRadius: mainRadius,
+            borderWidth: 2,
+            borderColor: '#FF6464',
+            width: 360,
+        }}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+                <Text style={{ ...textStyles.semibold15, fontSize: 18, color: '#FF6464', marginBottom: 4 }}>
+                    DEMO MODE
+                </Text>
+                <Text style={{ ...textStyles.reg11, color: 'rgba(255, 255, 255, 0.5)' }}>
+                    1-minute precision for demos
+                </Text>
+            </View>
+            
+            {/* Sunrise Time */}
+            <View style={{ marginBottom: 20 }}>
+                <Text style={{ ...textStyles.medium16, fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', marginBottom: 8 }}>
+                    Sunrise Time
+                </Text>
+                <View style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'row', height: 150 }}>
+                    <Picker
+                        selectedValue={sunH}
+                        itemStyle={{ height: 150, width: barWidth, color: 'white', fontSize: 18 }}
+                        onValueChange={(val) => setSunH(val)}
+                    >
+                        {Array.from({ length: 24 }, (_, i) => (
+                            <Picker.Item key={i} label={String(i).padStart(2, '0')} value={i} />
+                        ))}
+                    </Picker>
+                    <Text style={{ ...textStyles.semibold15, color: 'white', marginHorizontal: 4 }}>:</Text>
+                    <Picker
+                        selectedValue={sunM}
+                        itemStyle={{ height: 150, width: barWidth, color: 'white', fontSize: 18 }}
+                        onValueChange={(val) => setSunM(val)}
+                    >
+                        {minuteOptions.map(min => (
+                            <Picker.Item key={min} label={String(min).padStart(2, '0')} value={min} />
+                        ))}
+                    </Picker>
+                </View>
+            </View>
+            
+            {/* Wakeup Time */}
+            <View style={{ marginBottom: 20 }}>
+                <Text style={{ ...textStyles.medium16, fontSize: 14, color: 'rgba(255, 255, 255, 0.7)', marginBottom: 8 }}>
+                    Wakeup Time
+                </Text>
+                <View style={{ alignItems: 'center', justifyContent: 'center', flexDirection: 'row', height: 150 }}>
+                    <Picker
+                        selectedValue={wakeH}
+                        itemStyle={{ height: 150, width: barWidth, color: 'white', fontSize: 18 }}
+                        onValueChange={(val) => setWakeH(val)}
+                    >
+                        {Array.from({ length: 24 }, (_, i) => (
+                            <Picker.Item key={i} label={String(i).padStart(2, '0')} value={i} />
+                        ))}
+                    </Picker>
+                    <Text style={{ ...textStyles.semibold15, color: 'white', marginHorizontal: 4 }}>:</Text>
+                    <Picker
+                        selectedValue={wakeM}
+                        itemStyle={{ height: 150, width: barWidth, color: 'white', fontSize: 18 }}
+                        onValueChange={(val) => setWakeM(val)}
+                    >
+                        {minuteOptions.map(min => (
+                            <Picker.Item key={min} label={String(min).padStart(2, '0')} value={min} />
+                        ))}
+                    </Picker>
+                </View>
+            </View>
+            
+            {/* Action buttons */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity
+                    style={{
+                        flex: 1,
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: 20,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: 40,
+                        borderWidth: 1,
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                    }}
+                    onPress={onClose}
+                >
+                    <Text style={{ ...textStyles.medium16, color: 'rgba(255, 255, 255, 0.7)' }}>
+                        CANCEL
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    style={{
+                        flex: 1,
+                        backgroundColor: '#FF6464',
+                        borderRadius: 20,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: 40,
+                    }}
+                    onPress={() => onConfirm({ h: sunH, m: sunM }, { h: wakeH, m: wakeM })}
+                >
+                    <Text style={{ ...textStyles.medium16, color: 'white', fontWeight: 'bold' }}>
+                        SET DEMO TIMES
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+};
 
 const PickTimePanel = ({onClose, initialHour = 0, initialMin = 0, iconAddr, title}) => {
   // Adjustable sizing for icon and title
