@@ -218,13 +218,19 @@ const HomeScreen = (pass = {navigation, route}) => {
     // Sound playback functions
     const playTimerSound = useCallback(async (soundId) => {
         try {
-            // Prevent multiple simultaneous calls
-            if (timerSoundRef.current) {
-                console.log('[HomeScreen] Sound already playing, skipping');
-                return;
-            }
-            
             console.log(`[HomeScreen] Starting timer sound: ${soundId}`);
+            
+            // Stop and unload current sound if playing (allows switching sounds)
+            if (timerSoundRef.current) {
+                console.log('[HomeScreen] Stopping current sound to switch to new sound');
+                try {
+                    await timerSoundRef.current.stopAsync();
+                    await timerSoundRef.current.unloadAsync();
+                } catch (err) {
+                    console.warn('[HomeScreen] Error stopping previous sound:', err);
+                }
+                timerSoundRef.current = null;
+            }
             
             const soundFile = SOUND_FILES[soundId];
             if (!soundFile) {

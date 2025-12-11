@@ -170,7 +170,7 @@ export function HomeAlarmSetScreen({navigation}) {
 
     // Save current active alarm config for Home screen display and sync to server (debounced)
     React.useEffect(() => {
-        if (!configsHydrated) return; // wait until initial load completes
+        if (!configsHydrated || !savedAlarmState) return; // wait until initial load AND alarm loading completes
         const saveActiveConfig = async () => {
             try {
                 await AsyncStorage.setItem('activeAlarmConfig', JSON.stringify(alarmConfig));
@@ -186,7 +186,7 @@ export function HomeAlarmSetScreen({navigation}) {
             }
         };
         saveActiveConfig();
-    }, [alarmConfig, configsHydrated]);
+    }, [alarmConfig, configsHydrated, savedAlarmState]);
 
     // Load alarm configs from AsyncStorage (local cache) on mount
     // TODO: On app startup, sync with backend server to get latest configs
@@ -452,17 +452,22 @@ export function HomeAlarmSetScreen({navigation}) {
         }
     };
 
-    const handleWakeupChange = (hour, min, isDraggingNow = false) => {
+    const handleWakeupChange = (hour, min, isDraggingNow = false, skipAutoCalculate = false) => {
         const currentBedtime = bedtimeRef.current;
-
-        // Desired offset is the existing offset but capped to 120
-        let desiredOffset = sunriseOffsetRef.current;
-        if (desiredOffset > 120) desiredOffset = 120;
 
         // Update wakeup immediately for downstream calculations
         wakeupRef.current = { h: hour, m: min };
         setWakeupHour(hour);
         setWakeupMin(min);
+
+        // If skipAutoCalculate is true (e.g., from DEMO mode), don't recalculate sunrise
+        if (skipAutoCalculate) {
+            return;
+        }
+
+        // Desired offset is the existing offset but capped to 120
+        let desiredOffset = sunriseOffsetRef.current;
+        if (desiredOffset > 120) desiredOffset = 120;
 
         // Total available window from bedtime (t0) to new wakeup (t1) going forward in time
         const totalWindow = minutesDiff(currentBedtime.h, currentBedtime.m, hour, min);
@@ -671,8 +676,15 @@ export function HomeAlarmSetScreen({navigation}) {
                                     wakeupHour={wakeupHour}
                                     wakeupMin={wakeupMin}
                                     onConfirm={(sunrise, wakeup) => {
-                                        handleSunriseChange(sunrise.h, sunrise.m);
-                                        handleWakeupChange(wakeup.h, wakeup.m);
+                                        // Set wakeup first with auto-calculate disabled
+                                        handleWakeupChange(wakeup.h, wakeup.m, false, true);
+                                        // Then set sunrise directly (overrides auto-calculation)
+                                        setSunriseHour(sunrise.h);
+                                        setSunriseMin(sunrise.m);
+                                        // Recalculate offset to match the demo values
+                                        const offset = minutesDiff(sunrise.h, sunrise.m, wakeup.h, wakeup.m);
+                                        setSunriseOffsetMin(offset);
+                                        sunriseOffsetRef.current = offset;
                                         setDemoModalVisible(false);
                                     }}
                                     onClose={() => setDemoModalVisible(false)}

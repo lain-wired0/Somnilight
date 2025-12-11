@@ -3,8 +3,8 @@
 #include <ArduinoJson.h>
 #include <Adafruit_NeoPixel.h>
 
-const char* WIFI_SSID     = "BambuLab_3088_2.4G";
-const char* WIFI_PASSWORD = "BLWL3088";
+const char* WIFI_SSID     = "Nan Mate 60 Pro";
+const char* WIFI_PASSWORD = "88888888";
 
 const char* MQTT_SERVER   = "150.158.158.233";
 const int   MQTT_PORT     = 1883;

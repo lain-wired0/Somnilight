@@ -368,6 +368,7 @@ void updateAlarmState() {
   } else {
     // 3. 已到唤醒时间以后
     brightness = 100;
+    uint64_t lightOffTs = alarmTs + 30ULL * 60 * 1000ULL; // 自动熄灯时间点（唤醒后30分钟）
 
     uint64_t repeatMs = (uint64_t)g_alarm.repeat_interval_min * 60ULL * 1000ULL;
     if (repeatMs == 0) repeatMs = 5ULL * 60 * 1000ULL;
@@ -382,6 +383,10 @@ void updateAlarmState() {
 
     if (timesSinceWake == 0) status = "AWAKE_RINGING";
     else status = "AWAKE_REPEAT";
+
+    if (now_ts >= lightOffTs) {
+      brightness = 0; // 唤醒后30分钟自动熄灯
+    }
 
     // 记录下次响铃时间（供 UI 显示）
     uint64_t nextRingTs = alarmTs + (timesSinceWake + 1) * repeatMs;
